@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Recover LSTM results obtained in in Google Colab"""
+"""Recover LSTM results obtained in in Google Colab."""
 
 # %% PACKAGES
 import os

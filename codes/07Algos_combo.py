@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""Examine results for algorithm combinations."""
 
 import os
 from os.path import join as pjoin

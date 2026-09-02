@@ -9,6 +9,7 @@
 
 # %% PACKAGES
 
+import json
 import os
 import time
 from os.path import join as pjoin
@@ -18,6 +19,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from pylab import rcParams
+from scipy.sparse import csr_matrix
+from scipy.sparse.csgraph import connected_components
 
 rcParams["figure.figsize"] = 8, 3
 rcParams["figure.dpi"] = 600
@@ -107,6 +110,106 @@ ax.legend()
 fig.tight_layout()
 fig.savefig(pjoin("figures", "raw_data", "power_balance.pdf"), dpi=600)
 plt.close(fig)
+
+# %% KIRCHHOFF INDEX
+with open(pjoin(raw_folder, "europe_network.json")) as f:
+    network = json.load(f)
+
+bus_all = network["bus"]
+gen_all = network["gen"]
+branch_active = [br for br in network["branch"].values() if br["br_status"] == 1]
+
+
+def weighted_laplacian(bus_ids, branches):
+    """Laplacian of the subgraph induced by `bus_ids`, using line
+    susceptance (1/x) as edge conductance (DC power-flow approximation)."""
+    idx = {bus_id: i for i, bus_id in enumerate(bus_ids)}
+    n = len(bus_ids)
+    weights = np.zeros((n, n))
+    for br in branches:
+        f_bus, t_bus = br["f_bus"], br["t_bus"]
+        if f_bus not in idx or t_bus not in idx:
+            continue
+        w = 1 / br["br_x"]
+        weights[idx[f_bus], idx[t_bus]] += w
+        weights[idx[t_bus], idx[f_bus]] += w
+    return weights
+
+
+def largest_connected_component(bus_ids, weights):
+    n_components, labels = connected_components(csr_matrix(weights), directed=False)
+    if n_components == 1:
+        return bus_ids, weights
+    largest = np.argmax(np.bincount(labels))
+    keep = labels == largest
+    bus_ids = [bus_id for bus_id, k in zip(bus_ids, keep) if k]
+    return bus_ids, weights[np.ix_(keep, keep)]
+
+
+def kron_reduce(laplacian, keep_mask):
+    """Eliminate the buses where `keep_mask` is False (Schur complement),
+    leaving an equivalent Laplacian on the kept buses only, with their
+    susceptances aggregated over every path through the removed buses."""
+    if keep_mask.all():
+        return laplacian
+    l_kk = laplacian[np.ix_(keep_mask, keep_mask)]
+    l_ko = laplacian[np.ix_(keep_mask, ~keep_mask)]
+    l_oo = laplacian[np.ix_(~keep_mask, ~keep_mask)]
+    return l_kk - l_ko @ np.linalg.solve(l_oo, l_ko.T)
+
+
+def kirchhoff_index(laplacian):
+    """Sum of pairwise effective resistances, n * sum(1 / nonzero eigenvalue)."""
+    n = laplacian.shape[0]
+    eigenvalues = np.linalg.eigvalsh(laplacian)
+    eigenvalues = eigenvalues[eigenvalues > 1e-8]  # drop zero eigenvalue(s)
+    return n * np.sum(1 / eigenvalues)
+
+
+def n_lines(weights):
+    """Number of edges with nonzero susceptance (upper triangle of a
+    symmetric weight matrix)."""
+    return np.count_nonzero(np.triu(weights, k=1) > 1e-8)
+
+
+print("KIRCHHOFF INDEX (largest connected component, per country)")
+for country in ["CH", "DE", "ES"]:
+    bus_ids = [
+        int(bus_id)
+        for bus_id, info in bus_all.items()
+        if info["country"] == country and info["status"] == 1
+    ]
+    weights = weighted_laplacian(bus_ids, branch_active)
+    bus_ids, weights = largest_connected_component(bus_ids, weights)
+    laplacian = np.diag(weights.sum(axis=1)) - weights
+
+    kf = kirchhoff_index(laplacian)
+    avg_susceptance = kf / n_lines(weights)
+
+    # Reduced Kirchhoff index: Kron-reduce the network down to the
+    # generator buses only, aggregating susceptances along every path
+    # through non-generator buses, then take its Kirchhoff index.
+    gen_buses = {
+        gen["gen_bus"]
+        for gen in gen_all.values()
+        if gen["country"] == country and gen["gen_status"] == 1
+    }
+    gen_mask = np.array([bus_id in gen_buses for bus_id in bus_ids])
+    laplacian_reduced = kron_reduce(laplacian, gen_mask)
+    weights_reduced = -laplacian_reduced.copy()
+    np.fill_diagonal(weights_reduced, 0)
+
+    kf_reduced = kirchhoff_index(laplacian_reduced)
+    avg_susceptance_reduced = kf_reduced / n_lines(weights_reduced)
+
+    print(
+        1 * "\t",
+        f"{country}\tKf = {kf:.1f} (avg susceptance = {avg_susceptance:.3f})"
+        f"\tKf (generators only) = {kf_reduced:.1f} "
+        f"(avg susceptance = {avg_susceptance_reduced:.3f})",
+    )
+print("\n")
+
 
 # %% CH, FR & DE
 description = {}

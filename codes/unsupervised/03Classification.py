@@ -449,6 +449,7 @@ fig.tight_layout()
 
 figname = f"{case}_threshold_std.pdf"
 plt.savefig(pjoin("figures", "unsupervised_classification", figname), dpi=600)
+plt.close(fig)
 
 
 # %% LOW POWER ANALYSIS

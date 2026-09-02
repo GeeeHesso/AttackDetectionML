@@ -215,6 +215,7 @@ for ds_type, data in data_dict.items():
         pjoin("figures", "make_anomalies", f"{case}_{ds_type}_correlations.pdf"),
         dpi=600,
     )
+    plt.close(fig)
 
 
 # %%% PLOT OF ALL PROFILES

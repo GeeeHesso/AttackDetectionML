@@ -154,6 +154,7 @@ for attacked_gen in [923]:
             f"t-minus-t-1_vs_t-1_{attacked_gen}.{save_extension}",
         )
     )
+    plt.close(fig)
 
     # plot sum at t against power difference at t
     fig, ax = plt.subplots(figsize=(4, 3), dpi=600)
@@ -185,6 +186,7 @@ for attacked_gen in [923]:
             f"sum_vs_t-minus-t-1_{attacked_gen}.{save_extension}",
         )
     )
+    plt.close(fig)
 
     # plot power difference (t, t-1) against power difference (t, t-2)
     fig, ax = plt.subplots(figsize=(4, 3), dpi=600)
@@ -216,6 +218,7 @@ for attacked_gen in [923]:
             f"t-minus-t-2_vs_t-minus-t-1_{attacked_gen}.{save_extension}",
         )
     )
+    plt.close(fig)
 
     # # plot power difference (t, t-1) against power difference (t-1, t-2)
     # fig, ax = plt.subplots(figsize=(4, 3), dpi=600)
@@ -258,6 +261,7 @@ for attacked_gen in [923]:
             f"sum-diff_vs_t-diff_{attacked_gen}.{save_extension}",
         )
     )
+    plt.close(fig)
 
     # plot sum at t against sum at t-1
     fig, ax = plt.subplots(figsize=(4, 3), dpi=600)
@@ -289,3 +293,4 @@ for attacked_gen in [923]:
             f"sum_vs_sum-t-1_{attacked_gen}.{save_extension}",
         )
     )
+    plt.close(fig)

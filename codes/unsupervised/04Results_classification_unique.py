@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""Compile all unsupervised ML results after classification."""
 
 # %% PACKAGES
 import os
@@ -9,15 +10,14 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import pandas as pd
+from pylab import rcParams
 
 os.chdir(Path(__file__).resolve().parent.parent / "codes")
 
 sys.path.append(os.getcwd())
-from functions import load_models, get_gen_names
-
+from functions import get_gen_names, load_models
 
 # MATPLOTLIB PARAMETERS
-from pylab import rcParams
 
 rcParams["figure.figsize"] = 8, 3
 rcParams["figure.dpi"] = 400
@@ -27,15 +27,12 @@ plt.style.use("seaborn-dark-palette")
 colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
 colors.append("#FF6347")
 
-""" 
-04Results_classification_unique.py :  
-    Compile all regression results from 01GSCV.py
-                                    
-"""
-
 
 # %% PARAMETERS
 os.chdir("..")  # Working directory is repo main
+
+os.makedirs(pjoin("figures", "unsupervised_results_classification"), exist_ok=True)
+
 
 case = "CH"
 

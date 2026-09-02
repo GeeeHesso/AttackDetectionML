@@ -39,6 +39,9 @@ The multiples Python scripts in the [`codes`](./codes/) directory must be run se
 1. [`01Explore_raw_data.py`](./codes/01Explore_raw_data.py)
 2. [`02Make_anomalies.py`](./codes/02Make_anomalies.py)
 
+These scripts generate the list of on/off anomalies as well as several figures
+under [`figures`](./figures) for manual dataset exploration and validation.
+
 
 ### Supervised models 
 

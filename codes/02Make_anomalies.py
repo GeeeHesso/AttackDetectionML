@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""Generate anomaly dataset."""
 
 # %% PACKAGES
 
@@ -7,51 +8,41 @@ import time
 from os.path import join as pjoin
 from pathlib import Path
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from pylab import rcParams
 
 os.chdir(Path(__file__).resolve().parent.parent / "codes")
 import sys
 
 sys.path.append(os.getcwd())
+
 from functions import load_data
 
 # MATPLOTLIB PARAMETERS
-import matplotlib.pyplot as plt
-from pylab import rcParams
 
 rcParams["figure.figsize"] = 8, 3
 rcParams["figure.dpi"] = 600
 
 colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
-# pd.DataFrame([1 for i in range(10)]).T.plot.bar(color=colors)
-
-
-""" 
-02Make_anomalies.py :     Generate anomaly detection dataset for a 
-                          cyberattacks paper:
-                                    - Choosing production 
-                                    - Add anomalies as production shutdown:
-                                        * one or multiple plant
-                                        * reversing production
-
-"""
 
 
 start_time = time.time()  # For total running time
 
 
 # %% PATH/NAME MANAGER
-os.chdir(Path(__file__).resolve().parent.parent)
+os.chdir("..")
 
 save = True
-case = "ES"
+case = "CH"
 
 ds_path = pjoin("datasets", case)
 os.makedirs(ds_path, exist_ok=True)
 
+os.makedirs(pjoin("figures", "make_anomalies"), exist_ok=True)
 
-# %% LOAD RAW PROFILS
+# %% LOAD RAW PROFILES
 # load_p, gen_p, gen_info = load_data(case, n_year=4)
 load_p, gen_p, gen_info = load_data(case)
 
@@ -93,8 +84,8 @@ fig.savefig(pjoin("figures", "make_anomalies", f"{case}_zero_gens.pdf"), dpi=600
 plt.close(fig)
 
 
-# %%% RAW PROFILS DESCRIPTION
-print("RAW PROFILS")
+# %%% RAW PROFILES DESCRIPTION
+print("RAW PROFILES")
 print(1 * "\t", "load_p shape :", load_p.shape)
 print(1 * "\t", "gen_p shape :", gen_p.shape, "\n")
 print(2 * "\t", load_p.shape[0], "pas de temps")
@@ -182,15 +173,8 @@ criteria = criteria.round({"z_ratio": 0, "p_mean": 0, "p_nom": 0, "p_nom_ratio":
 
 
 # %%% PEARSON CORRELATION
-# data_dict = {'load': load_p, 'generation': gen_p,
-#              'injection': pd.concat([load_p, gen_p],axis=1)}
 data_dict = {"gen": gen_p, "injection": pd.concat([load_p, gen_p], axis=1)}
-# data_dict = {'gen': gen_p}
-# data_dict = {'injection': pd.concat([load_p, gen_p],axis=1)}
 for ds_type, data in data_dict.items():
-    ## REMOVE CONSTANT PROFIL
-    # data = data.drop(columns=[...])
-
     # Stack correlation matrix
     corr = data.corr()
     n1, n2, values = list(), list(), list()
@@ -210,7 +194,6 @@ for ds_type, data in data_dict.items():
     )
 
     fig, ax = plt.subplots()  # Histogram of correlation values
-    # sns.histplot(df.pearson, bins=np.linspace(-1,1,50), ax=ax)
     df.pearson.plot.hist(bins=np.linspace(-1, 1, 50), ax=ax)
     ax.set(
         title=f"Histogramme des corrélations par paire de profils de {ds_type} (p={df.shape[0]})",
@@ -222,36 +205,17 @@ for ds_type, data in data_dict.items():
         pjoin("figures", "make_anomalies", f"{case}_{ds_type}_correlations.pdf"),
         dpi=600,
     )
-    # plt.close(fig)
-
-    # df_z = df[df.pearson.abs() <= 0.0204]  # CST PROFIL ANALYSIS
-    # df_zn = pd.concat([df_z.n1, df_z.n2])
-    # df_z_counts = df_zn.value_counts()
 
 
 # %%% PLOT OF ALL PROFILES
 cst = []
 for col in gen_p.columns:
-    # fig, ax = plt.subplots(dpi=200)
-    # gen_p[col].plot(xlabel='pas de temps [h]', ylabel='puissance active [MW]',
-    #                 label=col[:-4], legend=True, ax=ax)
-    # ax.set_ylim(bottom=0)
-
     cst.append(gen_p[col].round(0).value_counts().to_dict())
 
 cst = pd.DataFrame({"value": cst}, index=gen_p.columns)
 cst["len"] = [len(x) for x in cst.value]
 cst["most_frequent"] = [item[list(item.keys())[0]] for item in cst.value]
 print(cst[cst.most_frequent > 0.99 * gen_p.shape[0]].index)
-
-
-# %%%% ALL OTHER CST PROFILES
-# cols = cst[cst.most_frequent > 0.99*gen_p.shape[0]].index
-# for col in cols:
-#     fig, ax = plt.subplots()
-#     gen_p[col].plot(label=col, ax=ax, legend=True)
-#     ax.set(xlabel='puissance active [MW]', ylabel='récurrence')
-#     ax.set_ylim(bottom=0)
 
 
 # %%%% PLOT OF ALL NUCLEAR PROFILES
@@ -266,9 +230,6 @@ plt.close(fig)
 
 for col in cols:
     print(gen_p[col].round(1).value_counts())
-    # fig, ax = plt.subplots()
-    # gen_p[col].hist(label=col[:-4], ax=ax)
-    # ax.set(xlabel='puissance active [MW]', ylabel='récurrence')
 
 
 # %% SELECTION OF GEN PROFILS
@@ -276,15 +237,6 @@ for col in cols:
 
 # %%% 1ST SEL BY HISTOGRAM
 for col in gen_info.id:
-    # for col in gen_info.id[gen_info.type=='hydro_storage']:  ## CH
-
-    # for col in gen_info.id[gen_info.type=='coal']:  ## DE
-    # for col in gen_info.id[gen_info.type=='gas']:  ## DE
-
-    # for col in gen_info.id[gen_info.type=='hydro']:  ## ES
-    # for col in gen_info.id[gen_info.type=='coal']:  ## ES
-    # for col in gen_info.id[gen_info.type=='gas']:  ## ES
-
     ## PLOTTING
     fig, ax = plt.subplots(dpi=200)
     gen_p[col].plot.hist(bins=100, ax=ax)
@@ -416,52 +368,6 @@ for col in attack_gens[case]:
 print(2 * "\t", len(attack_gens[case]), "profil de production respectant les critères")
 
 
-# %%% COMPARE NODES
-# node_to_compare = ['Innertkirchen_gen', 'Cavergno_gen']
-
-# fig1, ax1 = plt.subplots(figsize=(10,2.5))
-# fig2, ax2 = plt.subplots()
-# fig3, ax3 = plt.subplots(figsize=(8,2.5))
-# for col in node_to_compare:
-
-#     # fig, ax = plt.subplots()  # TIMESERIES PLOT
-#     gen_p[col].plot(ax=ax1, legend=True)
-
-#     # fig, ax = plt.subplots()  # ACTIVE POWER HISTOGRAM
-#     gen_p[col].plot.hist(bins=122, legend=True, ax=ax2, alpha = 0.5)
-
-#     # fig, ax = plt.subplots()
-#     pair = df[(df.n1 == col) | (df.n2 == col)]
-
-#     # Histogram of correlation values
-#     pair.pearson.plot.hist(bins=np.linspace(-1,1,50), ax=ax3,
-#                             label=col, legend=True, alpha = 0.5,)
-
-# ax1.set(ylabel='puissance active [MW]', xlabel='pas de temps [h]')
-# ax1.set(xlim=(0,1e4))
-# ax1.legend([n[:-4] for n in node_to_compare],bbox_to_anchor=(1, 0.81))
-# fig1.tight_layout()
-# figname = 'annexe_Inn-Carv_profils.svg'
-# # plt.savefig(pjoin('figures', figname), dpi=600)
-# fig1.savefig(pjoin('figures', figname), dpi=600)
-
-
-# ax2.set(xlabel='puissance active [MW]', ylabel='récurrence')
-# fig2.tight_layout()
-
-
-# ax3.legend([n[:-4] for n in node_to_compare], loc='upper left')
-# # ax3.set(title=f'Histogramme des corrélations par paire de profile de {ds_type} '
-# #           f'de la production XX (p={pair.shape[0]})')
-# ax3.set(ylabel='récurrence', ylim=(0, 90))
-# ax3.set(xlabel='coefficient de corrélation de Pearson')
-# fig3.tight_layout()
-
-# figname = 'annexe_Inn-Carv_correlation.svg'
-# # plt.savefig(pjoin('figures', figname), dpi=600)
-# fig3.savefig(pjoin('figures', figname), dpi=600)
-
-
 # %% MAKE ANOMALIES ON-OFF
 
 # RANDOM INDEX FOR ANOMALIES (SAME FOR ALL SINGLE NODE ATTACK)
@@ -506,20 +412,13 @@ criteria["off_to_on_ratio"] = criteria["off_to_on_count"] / len(attack_timesteps
 
 # %% VISUALISE ANOMALY
 for attack_col in attack_gens[case]:  # Gen number with anomalies
-    # for attack_col in [234]: # Gen number with anomalies
-    #
     gen_p_a = pd.read_pickle(pjoin(ds_path, f"{attack_col}_p_attacked.p"))
 
     t0 = 0
-    # t0 = 24*7*25
     period = 24 * 7
-    # period = 24
-    # period = gen_p.shape[0]
     fig, ax = plt.subplots()
     gen_p_a.plot(ax=ax, label="value sent back to the operator", style="--")
     gen_p[attack_col].plot(ax=ax, label="real value")
-    # ax.scatter(gen_p.index, gen_p[attack_col], label='mesure', s=5)
-    # ax.scatter(attack_timesteps, gen_p_a[attack_timesteps], label='attaque', s=5)
     ax.set(
         title=f"Example of a single attack on production {attack_col} (occ: {attack_ratio})",
         ylabel="active power [MW]",
@@ -528,7 +427,6 @@ for attack_col in attack_gens[case]:  # Gen number with anomalies
         xlim=(t0, t0 + period),
         # ylim=(0, 250),
     )
-    # ax.legend(loc='upper center', bbox_to_anchor=(0.5, 1.2), ncol=2)
     ax.legend()
     fig.tight_layout()
     fig.savefig(
@@ -538,7 +436,6 @@ for attack_col in attack_gens[case]:  # Gen number with anomalies
         dpi=600,
     )
     plt.close(fig)
-    # fig.savefig(pjoin(ds_path, 'single_node_attack_exemple.svg'))
 
 
 # %% SET ANALYSIS

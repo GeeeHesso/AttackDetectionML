@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+"""Compile all unsupervised ML results."""
 
 # %% [0] PACKAGES
 import os
@@ -11,47 +11,38 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import pandas as pd
+from pylab import rcParams
 
 os.chdir(Path(__file__).resolve().parent.parent / "codes")
 
 
 sys.path.append(os.getcwd())
-from functions import load_models, get_gen_names, get_p_nom
-
+from functions import get_gen_names, get_p_nom, load_models
 
 # MATPLOTLIB PARAMETERS
-from pylab import rcParams
-
 rcParams["figure.figsize"] = 8, 3
 rcParams["figure.dpi"] = 400
 plt.style.use("seaborn-dark-palette")
-# plt.style.use('seaborn-v0_8-dark-palette')
 
 colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
 colors.append("#FF6347")
 
-""" 
-02Results_regression.py :  Compile all regression results from 01GSCV.py.
-                                    
-"""
-
 
 # %% [1] PARAMETERS
 os.chdir("..")  # Working directory is repo main
+
+os.makedirs(pjoin("figures", "unsupervised_results_regression"), exist_ok=True)
 
 case = "CH"
 
 nets_dict = [case]  # List with all nets
 models_dict = load_models()  # Dictionary with all regression models
 models_dict = {"mlpr": models_dict["mlpr"]}  # Dictionary with all regression models
-# models_dict = {}  # Dictionary with all regression models for debug lstm only
 models_dict["lstm"] = {}  # From google colab
 
 types_dict = ["generation", "injection"]  # List with all dataset type
-# types_dict = ['generation']
 sequence_lens = [4, 24]
 contextual_lens = ["t", "hist"]  # W/O historical values for contextual variable
-# contextual_lens = ['hist']  # W/O historical values for contextual variable
 
 # sorted_nodes = ['Innertkirchen', 'Sils', 'Löbbia', 'Tavanasa', 'Sedrun', 'Pradella',
 #                 'Rothenbrunnen', 'Riddes', 'Stalden', 'Cavergno']
@@ -152,12 +143,6 @@ result = result.rename(columns={"index": "set"})
 print(result.columns)
 print("all fits:", result.shape[0], "\n")
 
-# cols = ['net', 'attack_gen', 'model', 'ds_type',
-#         'fn_rate', 'f2_score', 'f5_score', 'tn', 'fp', 'fn', 'tp', 'test_hacked',
-#         'test_occ', 'train_size', 'train_sample', 'train_hacked', 'train_occ']
-
-# result = result[cols]
-
 result.sort_values(by="rmse", ascending=True, inplace=True)
 result = result.round(3)
 
@@ -175,12 +160,6 @@ hyper_all = hyper_all.T
 
 
 # %% [4] MLPR LEARNING ANALYSIS
-# for ds_type, df_type in learning_mlpr.groupby('ds_type'):
-#     fig, ax = plt.subplots(figsize=(6,1))
-#     df_type['iter (epochs)'].plot.box(vert=False, ax=ax)
-#     ax.set_yticklabels('')
-#     ax.set(ylabel='epochs', title=ds_type, xlim=(0,201),)
-
 fig, ax = plt.subplots(figsize=(8, 1.5))
 learning_mlpr["iter (epochs)"].plot.box(vert=False, ax=ax)
 ax.set_yticklabels("")

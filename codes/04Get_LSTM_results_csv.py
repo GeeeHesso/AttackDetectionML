@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""Recover LSTM results obtained in in Google Colab"""
 
 # %% PACKAGES
 import os
@@ -13,14 +14,10 @@ os.chdir(Path(__file__).resolve().parent.parent)
 
 
 nets = ["CH", "DE", "ES"]  # List with all nets
-# nets = ['CH']  # List with all nets
 models = ["lstm"]  # List with colab models
 types = ["injection", "generation"]  # List with all dataset type
-# types = ['generation']  # List with all dataset type
 
 approaches = ["supervised", "unsupervised"]  # List with all ml approaches
-# approaches = ['supervised']  # List with all ml approaches
-# approaches = ['unsupervised']  # List with all ml approaches
 
 sequences = [4, 24]
 

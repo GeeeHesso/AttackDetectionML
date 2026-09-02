@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""Performance of the algorithm under multiple concurrent attacks."""
 
 import os
 import sys

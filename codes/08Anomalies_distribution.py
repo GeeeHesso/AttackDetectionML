@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""Distribution of anomalies."""
 
 import os
 import sys
@@ -36,6 +37,9 @@ from functions import load_data
 
 # %% [1] PARAMETERS
 os.chdir("..")  # Working directory is repo main
+
+os.makedirs(pjoin("figures", "anomalies_distribution"), exist_ok=True)
+
 
 case = "CH"
 

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""Display optimal hyperparameters for all trained models."""
 
 import os
 from os.path import join as pjoin

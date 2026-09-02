@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+"""Compile all supervised & unsupervised ML results."""
 
 # %% PACKAGES
 import os
@@ -9,25 +9,19 @@ from os.path import join as pjoin
 from pathlib import Path
 
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
+from pylab import rcParams
 
 os.chdir(Path(__file__).resolve().parent.parent / "codes")
 
 sys.path.append(os.getcwd())
-from functions import load_models, get_gen_names
-
+from functions import get_gen_names, load_models
 
 # MATPLOTLIB PARAMETERS
-from pylab import rcParams
 
 rcParams["figure.figsize"] = 8, 3
 rcParams["figure.dpi"] = 400
 plt.style.use("seaborn-dark-palette")
-# plt.style.use('seaborn-v0_8-dark-palette')
-
-# colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
-# colors.append('#FF6347')
 
 color_models = {
     "LSTMR": "#001C7F",
@@ -40,14 +34,6 @@ color_models = {
     "KNNC": "#000000",
     "NBC": "#5A6650",
 }
-
-
-""" 
-05Results_unique_supervised_unsupervised.py :
-    
-    Compile all supervised & unsupervised ML results                                    
-
-"""
 
 
 # %% PATH MANAGER
@@ -142,7 +128,7 @@ cartesian = product(
 )
 
 net_old = ""
-result_unsup = list()
+result_unsup = []
 for net, model, ds_type, seq, contextual in cartesian:
     if net != net_old:  # Avoid doing same things
         net_old = net
@@ -189,21 +175,6 @@ result_unsup = pd.concat(result_unsup, ignore_index=True)
 results = pd.concat([results, result_unsup], ignore_index=True)
 
 print("all unsupervised fits:", result_unsup.shape[0], "\n")
-
-
-# %% LOAD OTHER RESULTS
-# result_ext_file = 'external_results/best_results_%s.csv' % case
-# if os.path.isfile(result_ext_file):
-#     result_ext = pd.read_csv(result_ext_file)
-#     results = pd.concat([results, result_ext], ignore_index=True)
-#
-#     print('external results:', result_ext.shape[0], '\n')
-
-# results['fn_rate'] = results['fn']/results['test_hacked']
-
-
-# EXCLUDING ONE NODE
-# results = results[results["node"] != 208]
 
 # %% PROCESS RESULTS
 

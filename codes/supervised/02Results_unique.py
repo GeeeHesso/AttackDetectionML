@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""Compile all supervised ML results."""
 
 # %% [0] PACKAGES
 import os
@@ -10,15 +11,14 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import pandas as pd
+from pylab import rcParams
 
 os.chdir(Path(__file__).resolve().parent.parent / "codes")
 
 sys.path.append(os.getcwd())
-from functions import load_models, get_gen_names
-
+from functions import get_gen_names, load_models
 
 # MATPLOTLIB PARAMETERS
-from pylab import rcParams
 
 rcParams["figure.figsize"] = 8, 3
 rcParams["figure.dpi"] = 400
@@ -27,14 +27,10 @@ colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
 colors.append("#FF6347")
 
 
-""" 
-02Results_unique.py :  Compile all supervised ML results
-                                    
-"""
-
-
 # %% [1] PATH MANAGER
 os.chdir("..")  # Working directory is repo main
+
+os.makedirs(pjoin("figures", "supervised_results_unique"), exist_ok=True)
 
 case = "CH"
 
@@ -207,17 +203,6 @@ hyper_all = hyper_all.T
 
 
 # %% [4] MLPC LEARNING ANALYSIS
-# for ds_type, df_type in learning_mlpc.groupby('ds_type'):
-#     for est_type, df in df_type.groupby('learning'):
-#         fig, ax = plt.subplots(figsize=(6,1))
-#         df['iter (epochs)'].plot.box(vert=False, ax=ax)
-#         ax.set_yticklabels('')
-#         ax.set(ylabel='epochs', title=est_type+' '+ds_type, xlim=(0,201),)
-#         fig.tight_layout()
-#         fig.savefig(pjoin('figures', 'supervised_results_unique', f'{case}_mlpc_learning_{ds_type}_{est_type}.pdf'), dpi=600)
-#         plt.close(fig)
-#
-#
 for est_type, result_type in learning_mlpc.groupby("learning"):
     epochs_by_seq = pd.DataFrame()
     for col, df in result_type.groupby("seq"):
@@ -408,133 +393,6 @@ for model, result_model in cm_net.groupby("model"):
         dpi=600,
     )
     plt.close(fig)
-
-
-# %% [6] MLPC RESULTS ANALYSIS
-# cm_mlpc = cm_net[cm_net.model == 'mlpc']
-
-
-# # %%% [6.1] INJ VS GEN F2_SCORE
-# f2_score_mlpc = pd.DataFrame()
-# for gtype, df in cm_mlpc.groupby('ds_type'):
-#     df.set_index('attack_gen', inplace=True)
-#     f2_score_mlpc[gtype] = df.f2_score
-
-# # Reorder index as the fisrt plot
-# f2_score_mlpc = f2_score_mlpc.reindex(f2_scores.index)
-
-# ## BAR PLOT
-# fig, ax = plt.subplots()  # f2_score comparison by node and dataset type
-# f2_score_mlpc.plot.bar(ax=ax)
-# ax.set(xlabel='', ylabel='F\u2082', ylim=(.75,1))
-# ax.tick_params(axis='x', labelrotation=20)
-# # ax.legend(ncol=len(f2_scores.columns))
-# fig.tight_layout()
-
-# ## BOX PLOT
-# fig, ax = plt.subplots(figsize=(8,2.4))  # f2_score comparison by model and node
-# f2_score_mlpc.plot.box(ax=ax, vert=False)
-# ax.set(xlabel='f2_score', xlim=(0.75,1))
-# ax.set_yticklabels(f2_score_mlpc.columns, rotation=90, va='center')
-# fig.tight_layout()
-
-
-# # %%% [6.2] INJ VS GEN FN-FP
-# # tneg = pd.DataFrame()
-# fpos = pd.DataFrame()
-# fneg = pd.DataFrame()
-# tpos = pd.DataFrame()
-
-# for gtype, df in cm_mlpc.groupby('ds_type'):
-#     df.set_index('attack_gen', inplace=True)
-#     # tneg[gtype] = df.tn
-#     fpos[gtype] = df.fp
-#     fneg[gtype] = df.fn
-#     tpos[gtype] = df.tp
-
-# # Reorder index as the fisrt plot
-# # tneg = tneg.reindex(f2_scores.index)
-# fpos = fpos.reindex(f2_scores.index)
-# fneg = fneg.reindex(f2_scores.index)
-# tpos = tpos.reindex(f2_scores.index)
-
-
-# # %%%% [6.2.1] ABSOLUTE FN-FP
-# fig, ax = plt.subplots()  # fn comparison by node and dataset type
-# fneg.plot.bar(ax=ax)
-# ax.set(ylabel='fn')
-# ax.tick_params(axis='x', labelrotation=20)
-# fig.tight_layout()
-
-# fig, ax = plt.subplots()  # fp comparison by node and dataset type
-# fpos.plot.bar(ax=ax)
-# ax.set(ylabel='fp')
-# ax.tick_params(axis='x', labelrotation=20)
-# fig.tight_layout()
-
-
-# # %%%% [6.2.3] RECALL & PRECISION
-
-# recall = tpos / (tpos + fneg) * 100
-# precision = tpos / (tpos + fpos) * 100
-
-# fig, ax = plt.subplots()  # recall (sensitivity) by node & type
-# recall.plot.bar(ax=ax)
-# ax.set(ylabel='rappel [%]')
-# ax.set(ylim=(70, 100))
-# ax.tick_params(axis='x', labelrotation=20)
-# fig.tight_layout()
-
-# fig, ax = plt.subplots()  #  precision (positive predictive) by node & type
-# precision.plot.bar(ax=ax)
-# ax.set(ylabel='précision [%]')
-# ax.set(ylim=(80, 100))
-# ax.tick_params(axis='x', labelrotation=20)
-# fig.tight_layout()
-
-
-# # %%% [6.3] TRAIN SIZE ANALYSIS (F2_SCORE)
-# cm_mlpc_trs = cm_all_all[cm_all_all.model == 'mlpc']
-# cm_mlpc_trs.sort_values(by='train_size', inplace=True)
-
-# for ds_type, df_type in cm_mlpc_trs.groupby('ds_type'):
-
-#     fig, ax = plt.subplots()  # fn as function of train size
-#     for node, df in df_type.groupby('attack_gen'):
-
-#         ax.plot(df.train_size*100, df.f2_score, label=node, marker='o')
-#         # ax.plot(df.train_size, df.f5_score, label=node+' f5_score')
-
-#     ax.set(xlabel="taille du jeu d'entraînement [%]", ylabel='f2_score')
-#     ax.set(title=f"type d'entrée {ds_type}")
-#     ax.set(ylim=(.65, 1), xlim=(0, 110))
-#     ax.legend(bbox_to_anchor=(1, 1))
-#     fig.tight_layout()
-
-
-# # %%% [6.4] TRAIN SIZE ANALYSIS (FN-FP)
-# # for ds_type, df_type in cm_mlpc_trs.groupby('ds_type'):
-
-# #     for node, df in df_type.groupby('attack_gen'):
-
-# #         fig, ax1 = plt.subplots()  # fn as function of train size
-# #         ax2 = ax1.twinx()
-
-# #         ax1.plot(df.train_size, df.fn, label=node)
-# #         ax2.plot(df.train_size, df.fp, label=node, color=colors[1])
-
-# #         ax1.set(title=f"type d'entrée {ds_type}")
-# #         ax1.set(xlabel="taille du jeu d'entraînement")
-# #         ax1.set(ylim=(0, 250))  # 680 attacks on test set
-# #         ax2.set(ylim=(0, 250))
-
-# #         ax1.set_ylabel('fn', color=colors[0])
-# #         ax2.set_ylabel('fp', color=colors[1])
-# #         ax1.tick_params(axis='y', labelcolor=colors[0])
-# #         ax2.tick_params(axis='y', labelcolor=colors[1])
-
-# #         ax1.legend()
-# #         fig.tight_layout()
 
 
 # %% [7] LSTM RESULTS ANALYSIS

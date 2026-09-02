@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+"""Explore raw data:
+- Total load by country
+- Power grid description by country
+- Correlation
+- Production structure
+"""
+
 
 # %% PACKAGES
 
@@ -19,15 +26,6 @@ plt.style.use("seaborn-dark-palette")  # PC HEVS
 
 colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
 
-""" 
-01Explore_raw_data.py :     Explore multiple raw data
-                                - Total load by country
-                                - Power grid description by country
-                                - Correlation
-                                - Swiss production structure
-
-"""
-
 start_time = time.time()  # For total running time
 
 
@@ -35,6 +33,9 @@ start_time = time.time()  # For total running time
 os.chdir(Path(__file__).resolve().parent.parent)
 
 raw_folder = "raw_data"
+
+os.makedirs(pjoin("figures", "raw_data"), exist_ok=True)
+
 
 # %% RAW DATA
 
@@ -105,7 +106,6 @@ ax.set(
 ax.legend()
 fig.tight_layout()
 fig.savefig(pjoin("figures", "raw_data", "power_balance.pdf"), dpi=600)
-
 
 # %% CH, FR & DE
 description = {}

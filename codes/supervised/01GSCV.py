@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
+"""Grid search cross-validation for supervised models, with optimisation of hyperparameters."""
 
 # %% [0] PACKAGES
 import os
 import pickle
 import sys
+import warnings
 from itertools import product
 from os.path import join as pjoin
 from pathlib import Path
@@ -23,16 +25,7 @@ sys.path.append(os.getcwd())
 
 from functions import load_data, load_models
 
-import warnings
-
 warnings.filterwarnings(action="ignore", category=FutureWarning)
-
-
-""" 
-01GSCV.py :     Grid search cv files for cluster computing
-
-nohup python3 -u 01GSCV.py > out/01GSCV.out &
-"""
 
 start_time = time()  # For total running time
 

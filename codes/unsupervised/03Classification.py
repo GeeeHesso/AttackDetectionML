@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""Classification of unsupervised results with threshold optimization."""
 
 # %% PACKAGES
 import os
@@ -8,48 +9,35 @@ from os.path import join as pjoin
 from pathlib import Path
 from time import time
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from pandas import read_pickle as rpckl
-
-# from sklearn.preprocessing import MinMaxScaler
-# from sklearn.model_selection import train_test_split
-# from sklearn.metrics import mean_squared_error, r2_score
+from pylab import rcParams
 from sklearn.metrics import confusion_matrix, fbeta_score
 from sklearn.metrics import mean_absolute_percentage_error as mape
 
 os.chdir(Path(__file__).resolve().parent.parent / "codes")
 
 sys.path.append(os.getcwd())
-from functions import load_models, get_p_nom, get_gen_names
-
+from functions import get_gen_names, get_p_nom, load_models
 
 # MATPLOTLIB PARAMETERS
-from pylab import rcParams
-import matplotlib.pyplot as plt
 
 rcParams["figure.figsize"] = 8, 3
 rcParams["figure.dpi"] = 100
 plt.style.use("seaborn-dark-palette")
-# plt.style.use('seaborn-v0_8-dark-palette')
 
 colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
-# colors.append('#FF6347')
 
-
-""" 
-03Classification.py :     Search the good threshold to classify situations.
-
-
-nohup python3 -u 03Classification.py > out/03Classification.out &
-nohup python3 -u 03Classification.py > out/03Classification_DE-mlpr.out &
-"""
 
 start_time = time()  # For total running time
 
 
 # %% PARAMETERS
 os.chdir("..")  # Working directory is repo main
+
+os.makedirs(pjoin("figures", "unsupervised_classification"), exist_ok=True)
 
 case = "CH"
 

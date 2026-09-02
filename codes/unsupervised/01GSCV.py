@@ -1,4 +1,5 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3,
+"""Grid search cross-validation for unsupervised models, with optimisation of hyperparameters."""
 
 # %% PACKAGES
 import os
@@ -23,16 +24,6 @@ os.chdir(Path(__file__).resolve().parent.parent / "codes")
 sys.path.append(os.getcwd())
 from functions import load_data, load_models
 
-
-""" 
-01GSCV.py :     Grid search cv files for cluster computing
-                    
-				- Optimising hyperparameters for multilayers
-				  perceptron regressor.
-
-nohup python3 -u 01GSCV.py > out/01GSCV.out &
-"""
-
 start_time = time()  # For total running time
 
 
@@ -52,18 +43,15 @@ contextual_lens = ["t", "hist"]  # W/O historical values for contextual variable
 
 
 # %% DEBUG PARAMETERS
-keys = ["mlpr"]  # Select specific models
+# keys = ["mlpr"]  # Select specific models
 # models_dict = {key: models_dict[key] for key in keys}
 
 types_dict = ["generation"]  # Select specific ds_type
 # types_dict = ['injection'] # Select specific ds_type
 
-# sequence_lens = [1*4] # Select specific sequence length
-# sequence_lens = [6*4] # Select specific sequence length
-# sequence_lens = [0, 1, 2, 3, 8, 48, 96, 168]
-sequence_lens = [1, 2, 3, 8, 48, 96, 168]
+# sequence_lens = [1, 2, 3, 8, 48, 96, 168]
 
-contextual_lens = ["t"]  # Select specific sequence length
+# contextual_lens = ["t"]  # Select specific sequence length
 # contextual_lens = ['hist'] # Select specific sequence length
 
 

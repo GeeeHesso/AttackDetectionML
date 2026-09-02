@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 from pylab import rcParams
 
-os.chdir(Path(__file__).resolve().parent.parent / "codes")
+os.chdir(Path(__file__).resolve().parent)
 import sys
 
 sys.path.append(os.getcwd())

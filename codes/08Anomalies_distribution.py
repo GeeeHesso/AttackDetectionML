@@ -27,7 +27,7 @@ save_extension = "png"
 
 
 # %% PATH/NAME MANAGER
-os.chdir(Path(__file__).resolve().parent.parent / "codes")
+os.chdir(Path(__file__).resolve().parent)
 
 raw_folder = "raw_data"
 

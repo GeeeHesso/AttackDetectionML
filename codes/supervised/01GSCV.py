@@ -18,7 +18,7 @@ from sklearn.metrics import confusion_matrix, fbeta_score, make_scorer
 from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import StandardScaler
 
-os.chdir(Path(__file__).resolve().parent.parent / "codes")
+os.chdir(Path(__file__).resolve().parent.parent)
 
 
 sys.path.append(os.getcwd())

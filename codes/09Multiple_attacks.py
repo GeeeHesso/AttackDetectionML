@@ -13,7 +13,7 @@ import pandas as pd
 from pandas import read_pickle as rpckl
 
 # %% PATH/NAME MANAGER
-os.chdir(Path(__file__).resolve().parent.parent / "codes")
+os.chdir(Path(__file__).resolve().parent)
 
 
 raw_folder = "raw_data"

@@ -19,7 +19,7 @@ from sklearn.preprocessing import MinMaxScaler
 
 # from sklearn.metrics import confusion_matrix, fbeta_score, make_scorer
 
-os.chdir(Path(__file__).resolve().parent.parent / "codes")
+os.chdir(Path(__file__).resolve().parent.parent)
 
 sys.path.append(os.getcwd())
 from functions import load_data, load_models

@@ -17,7 +17,7 @@ from pylab import rcParams
 from sklearn.metrics import confusion_matrix, fbeta_score
 from sklearn.metrics import mean_absolute_percentage_error as mape
 
-os.chdir(Path(__file__).resolve().parent.parent / "codes")
+os.chdir(Path(__file__).resolve().parent.parent)
 
 sys.path.append(os.getcwd())
 from functions import get_gen_names, get_p_nom, load_models

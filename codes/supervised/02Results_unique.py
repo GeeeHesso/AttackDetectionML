@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from pylab import rcParams
 
-os.chdir(Path(__file__).resolve().parent.parent / "codes")
+os.chdir(Path(__file__).resolve().parent.parent)
 
 sys.path.append(os.getcwd())
 from functions import get_gen_names, load_models

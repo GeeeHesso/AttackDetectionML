@@ -1,0 +1,11 @@
+name: AttackDetectionML
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.6
+  - numpy
+  - pandas
+  - matplotlib
+  - scikit-learn
+  - scipy

@@ -1,0 +1,618 @@
+#!/usr/bin/env python3
+
+# %% PACKAGES
+
+import os
+import time
+from os.path import join as pjoin
+
+import numpy as np
+import pandas as pd
+
+os.chdir(os.getcwd().split("10_Armasuisse2024")[0] + "10_Armasuisse2024/codes")
+import sys
+
+sys.path.append(os.getcwd())
+from functions import load_data
+
+# MATPLOTLIB PARAMETERS
+import matplotlib.pyplot as plt
+from pylab import rcParams
+
+rcParams["figure.figsize"] = 8, 3
+rcParams["figure.dpi"] = 600
+
+colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+# pd.DataFrame([1 for i in range(10)]).T.plot.bar(color=colors)
+
+
+""" 
+02Make_anomalies.py :     Generate anomaly detection dataset for a 
+                          cyberattacks paper:
+                                    - Choosing production 
+                                    - Add anomalies as production shutdown:
+                                        * one or multiple plant
+                                        * reversing production
+
+"""
+
+
+start_time = time.time()  # For total running time
+
+
+# %% PATH/NAME MANAGER
+# os.chdir('..')  # Working directory in 10_Armasuisse2024
+os.chdir(os.getcwd().split("10_Armasuisse2024")[0] + "10_Armasuisse2024")
+
+save = True
+case = "ES"
+
+ds_path = pjoin("datasets", case)
+os.makedirs(ds_path, exist_ok=True)
+
+
+# %% LOAD RAW PROFILS
+# load_p, gen_p, gen_info = load_data(case, n_year=4)
+load_p, gen_p, gen_info = load_data(case)
+
+
+# %%% REMOVE VALUES NEAR 0 MW
+pthreshold = 0.3
+
+## LOAD
+load_zero = load_p < pthreshold
+# load_zero.sum().sum()  # very few load values under 0.3MW
+
+# load_p[load_zero] = 0  # Replace value by zeros
+
+criteria = load_zero.sum().to_frame("zero_count")
+criteria["z_ratio"] = criteria.zero_count / load_p.shape[0] * 100
+
+fig, ax = plt.subplots()
+criteria.z_ratio.plot.hist(ax=ax, bins=50)
+ax.set(xlabel=f"loads - proportion of values < {pthreshold} MW", ylabel="# load nodes")
+fig.tight_layout()
+fig.savefig(pjoin("figures", "make_anomalies", f"{case}_zero_loads.pdf"), dpi=600)
+plt.close(fig)
+
+
+## GEN
+gen_zero = gen_p < pthreshold
+gen_p[gen_zero] = 0  # Replace value by zeros
+
+criteria = gen_zero.sum().to_frame("zero_count")
+criteria["z_ratio"] = criteria.zero_count / gen_p.shape[0] * 100
+
+fig, ax = plt.subplots()
+criteria.z_ratio.plot.hist(ax=ax, bins=50)
+ax.set(
+    xlabel=f"generations - proportion of values < {pthreshold} MW", ylabel="# gen nodes"
+)
+fig.tight_layout()
+fig.savefig(pjoin("figures", "make_anomalies", f"{case}_zero_gens.pdf"), dpi=600)
+plt.close(fig)
+
+
+# %%% RAW PROFILS DESCRIPTION
+print("RAW PROFILS")
+print(1 * "\t", "load_p shape :", load_p.shape)
+print(1 * "\t", "gen_p shape :", gen_p.shape, "\n")
+print(2 * "\t", load_p.shape[0], "pas de temps")
+print(2 * "\t", load_p.shape[1], "profile de consommation")
+print(2 * "\t", gen_p.shape[1], "profile de production")
+print()
+print(2 * "\t", (load_p < 0).sum().sum(), "valeurs de consommation < 0 MW")
+print(2 * "\t", load_zero.sum().sum(), f"valeurs de consommation < {pthreshold} MW")
+print(2 * "\t", (gen_p < 0).sum().sum(), "valeurs de production < 0 MW")
+print(2 * "\t", gen_zero.sum().sum(), f"valeurs de production < {pthreshold} MW")
+print(
+    4 * "\t",
+    round(gen_zero.sum().sum() / (gen_zero.shape[0] * gen_zero.shape[1]), 2),
+    "rapport avec le nombre de valeurs totales",
+)
+
+fig, ax = plt.subplots()
+load_p.sum(axis=1).plot(ax=ax, label="total consumption", legend=True)
+gen_p.sum(axis=1).plot(ax=ax, label="total production", legend=True)
+(load_p.sum(axis=1) - gen_p.sum(axis=1)).plot(
+    ax=ax, label="import (+) / export (-)", legend=True
+)
+ax.set(
+    ylabel="active power [MW]",
+    xlabel="time step [h]",
+)
+fig.tight_layout()
+fig.savefig(pjoin("figures", "make_anomalies", f"{case}_power_balance.pdf"), dpi=600)
+plt.close(fig)
+
+# %%% RAW GEN PROFILS DESCRIPTION
+gen_p_describe = gen_p.describe()
+means = gen_p_describe.loc["mean", :].T
+criteria.insert(len(criteria.columns), "p_mean", means)
+
+fig, ax = plt.subplots(figsize=(6, 2))
+means.plot.box(vert=False)
+ax.set(xlabel="puissance active [MW]")
+fig.tight_layout()
+fig.savefig(
+    pjoin("figures", "make_anomalies", f"{case}_mean_power_output.pdf"), dpi=600
+)
+plt.close(fig)
+
+# for col in gen_p.columns:  # all profil plot
+#     fig, ax = plt.subplots()
+#     gen_p[col].plot(ax=ax, label=col, legend=True)
+#     ax.set(ylabel='puissance active [MW]', xlabel='pas de temps [h]')
+#     fig.tight_layout()
+
+
+# %%% GEN MAX OPF
+criteria["p_max"] = gen_info.pmax.tolist()
+
+
+# %%% MOST FREQUENT POWER
+max_values, max_occ = list(), list()
+for col in gen_p:
+    values, bins = np.histogram(gen_p[col], bins=122)  # At least bin size of 10 MW
+    max_index = np.argmax(values)  # Finding the most frequently power
+    max_value = bins[max_index]
+
+    if max_value == 0:
+        values = np.delete(values, max_index)  # delete max values
+        bins = np.delete(bins, max_index)  # delete bin of max values
+        max_index = np.argmax(values)
+        max_value = bins[max_index]
+
+    max_values.append(max_value)
+    max_occ.append(values.max())
+
+
+# max_values = pd.Series(max_values, index=gen_p.columns)
+# criteria.insert(len(criteria.columns), 'p_nom', max_values)
+max_values = pd.DataFrame(
+    {
+        "p_nom": max_values,
+        "p_nom_count": max_occ,
+    },
+    index=gen_p.columns,
+)
+criteria = pd.concat([criteria, max_values], axis=1)
+criteria["p_nom_ratio"] = criteria.p_nom_count / gen_p.shape[0] * 100
+criteria = criteria.round({"z_ratio": 0, "p_mean": 0, "p_nom": 0, "p_nom_ratio": 0})
+
+
+# %%% PEARSON CORRELATION
+# data_dict = {'load': load_p, 'generation': gen_p,
+#              'injection': pd.concat([load_p, gen_p],axis=1)}
+data_dict = {"gen": gen_p, "injection": pd.concat([load_p, gen_p], axis=1)}
+# data_dict = {'gen': gen_p}
+# data_dict = {'injection': pd.concat([load_p, gen_p],axis=1)}
+for ds_type, data in data_dict.items():
+    ## REMOVE CONSTANT PROFIL
+    # data = data.drop(columns=[...])
+
+    # Stack correlation matrix
+    corr = data.corr()
+    n1, n2, values = list(), list(), list()
+    for col in range(corr.shape[0]):
+        for row in range(col + 1, corr.shape[0]):
+            # print(row, col)
+            n1.append(corr.index[row])
+            n2.append(corr.columns[col])
+            values.append(corr.iloc[row, col])
+
+    df = pd.DataFrame(
+        {
+            "n1": n1,
+            "n2": n2,
+            "pearson": values,
+        }
+    )
+
+    fig, ax = plt.subplots()  # Histogram of correlation values
+    # sns.histplot(df.pearson, bins=np.linspace(-1,1,50), ax=ax)
+    df.pearson.plot.hist(bins=np.linspace(-1, 1, 50), ax=ax)
+    ax.set(
+        title=f"Histogramme des corrélations par paire de profils de {ds_type} (p={df.shape[0]})",
+        xlabel="coefficient de corrélation de Pearson",
+        ylabel="récurrence",
+    )
+    fig.tight_layout()
+    fig.savefig(
+        pjoin("figures", "make_anomalies", f"{case}_{ds_type}_correlations.pdf"),
+        dpi=600,
+    )
+    # plt.close(fig)
+
+    # df_z = df[df.pearson.abs() <= 0.0204]  # CST PROFIL ANALYSIS
+    # df_zn = pd.concat([df_z.n1, df_z.n2])
+    # df_z_counts = df_zn.value_counts()
+
+
+# %%% PLOT OF ALL PROFILES
+cst = []
+for col in gen_p.columns:
+    # fig, ax = plt.subplots(dpi=200)
+    # gen_p[col].plot(xlabel='pas de temps [h]', ylabel='puissance active [MW]',
+    #                 label=col[:-4], legend=True, ax=ax)
+    # ax.set_ylim(bottom=0)
+
+    cst.append(gen_p[col].round(0).value_counts().to_dict())
+
+cst = pd.DataFrame({"value": cst}, index=gen_p.columns)
+cst["len"] = [len(x) for x in cst.value]
+cst["most_frequent"] = [item[list(item.keys())[0]] for item in cst.value]
+print(cst[cst.most_frequent > 0.99 * gen_p.shape[0]].index)
+
+
+# %%%% ALL OTHER CST PROFILES
+# cols = cst[cst.most_frequent > 0.99*gen_p.shape[0]].index
+# for col in cols:
+#     fig, ax = plt.subplots()
+#     gen_p[col].plot(label=col, ax=ax, legend=True)
+#     ax.set(xlabel='puissance active [MW]', ylabel='récurrence')
+#     ax.set_ylim(bottom=0)
+
+
+# %%%% PLOT OF ALL NUCLEAR PROFILES
+cols = gen_info.id[gen_info.type == "nuclear"]
+fig, ax = plt.subplots(figsize=(8.5, 3))
+gen_p[cols].plot(xlabel="time step [h]", ylabel="active power [MW]", legend=True, ax=ax)
+ax.set_ylim(bottom=0)
+ax.legend(ncol=len(cols))
+fig.tight_layout()
+fig.savefig(pjoin("figures", "make_anomalies", f"{case}_nuclear.pdf"), dpi=600)
+plt.close(fig)
+
+for col in cols:
+    print(gen_p[col].round(1).value_counts())
+    # fig, ax = plt.subplots()
+    # gen_p[col].hist(label=col[:-4], ax=ax)
+    # ax.set(xlabel='puissance active [MW]', ylabel='récurrence')
+
+
+# %% SELECTION OF GEN PROFILS
+
+
+# %%% 1ST SEL BY HISTOGRAM
+for col in gen_info.id:
+    # for col in gen_info.id[gen_info.type=='hydro_storage']:  ## CH
+
+    # for col in gen_info.id[gen_info.type=='coal']:  ## DE
+    # for col in gen_info.id[gen_info.type=='gas']:  ## DE
+
+    # for col in gen_info.id[gen_info.type=='hydro']:  ## ES
+    # for col in gen_info.id[gen_info.type=='coal']:  ## ES
+    # for col in gen_info.id[gen_info.type=='gas']:  ## ES
+
+    ## PLOTTING
+    fig, ax = plt.subplots(dpi=200)
+    gen_p[col].plot.hist(bins=100, ax=ax)
+    ax.set(
+        xlabel="puissance active [MW]",
+        ylabel="récurrence",
+        # ylim=(0,9e3),
+    )
+    # ax.legend([col[:-4]])
+    # ax.legend([gen_info.name[gen_info.id==col].values[0]])
+    ax.legend([col])
+    fig.tight_layout()
+    fig.savefig(
+        pjoin("figures", "make_anomalies", f"{case}_gen{col}_distribution.pdf"), dpi=600
+    )
+    plt.close(fig)
+
+# Profiles with two clearly distinct production methods (two spikes on the histograms)
+first_selection = {
+    "CH": [923, 918, 933, 934, 173, 932, 924, 931, 915, 927],
+    "DE": [
+        253,
+        235,
+        255,  ## HARD COAL
+        969,
+        234,
+        271,
+        940,
+        301,
+        957,  ## GAS
+        299,
+        300,
+        208,
+    ],
+    "ES": [
+        1010,
+        997,
+        82,
+        81,
+        905,
+        142,
+        993,
+        152,
+        956,  # hydro generators with max output between 100 and 400 MW
+        1076,
+        998,  # 2 big gas generators
+        1004,
+        1005,
+        1061,  # 3 coal generators
+    ],
+}
+
+
+# %%% 2ND SEL BY SEASON PEAKS
+for col in first_selection[case]:  # 2ND SELECTION BY VISUAL INSPECTION
+    fig, ax = plt.subplots(figsize=(8, 2))
+    gen_p[col].plot(ax=ax, legend=True)
+    ax.set(ylabel="puissance active [MW]", xlabel="pas de temps [h]")
+    fig.tight_layout()
+    fig.savefig(
+        pjoin("figures", "make_anomalies", f"{case}_gen{col}_peaks.pdf"), dpi=600
+    )
+    plt.close(fig)
+
+# Profiles with summer daily peaks at the same level as winter peaks
+attack_gens = {
+    "CH": [923, 918, 933, 934, 173, 932, 924, 931, 915, 927],
+    "DE": [
+        ## ONLY 271 DO NOT MEET DE 2ND CRITERIA
+        253,
+        235,
+        255,  ## DE HARD COAL
+        969,
+        234,
+        940,
+        301,
+        957,  ## DE GAS
+        299,
+        300,
+        208,
+    ],
+    "ES": [
+        1010,
+        997,
+        82,
+        81,
+        905,
+        142,
+        993,
+        152,
+        956,  # hydro generators with max output between 100 and 400 MW
+        998,  # 2 big gas generators
+        1004,
+        1005,  # 3 coal generators
+    ],
+}
+
+## SAVE ATTACKED GENS
+pd.Series(attack_gens[case]).to_pickle(pjoin(ds_path, "attacked_gens.p"))
+
+criteria = criteria.loc[attack_gens[case], :]
+
+
+# %%% GEN NAMES & NOMINAL POWER
+{n: gen_info.name[gen_info.id == n].values[0] for n in attack_gens[case]}
+{n: criteria.p_nom.at[n] for n in attack_gens[case]}
+
+
+# %%% PEARSON CORRELATION BY NODES
+for col in attack_gens[case]:
+    fig, ax = plt.subplots()
+    pair = df[(df.n1 == col) | (df.n2 == col)]
+
+    # Histogram of correlation values
+    pair.pearson.plot.hist(bins=np.linspace(-1, 1, 50), ax=ax, label=col, legend=True)
+    ax.legend(loc="upper left")
+    ax.set(
+        title=f"Histogramme des corrélations par paire de profile de {ds_type} "
+        f"de la production XX (p={pair.shape[0]})"
+    )
+    ax.set(ylabel="récurrence", xlabel="coefficient de corrélation de Pearson")
+    ax.set(ylim=(0, 130))
+    fig.tight_layout()
+    fig.savefig(
+        pjoin("figures", "make_anomalies", f"{case}_gen{col}_correlation.pdf"), dpi=600
+    )
+    plt.close(fig)
+
+print(2 * "\t", len(attack_gens[case]), "profil de production respectant les critères")
+
+
+# %%% COMPARE NODES
+# node_to_compare = ['Innertkirchen_gen', 'Cavergno_gen']
+
+# fig1, ax1 = plt.subplots(figsize=(10,2.5))
+# fig2, ax2 = plt.subplots()
+# fig3, ax3 = plt.subplots(figsize=(8,2.5))
+# for col in node_to_compare:
+
+#     # fig, ax = plt.subplots()  # TIMESERIES PLOT
+#     gen_p[col].plot(ax=ax1, legend=True)
+
+#     # fig, ax = plt.subplots()  # ACTIVE POWER HISTOGRAM
+#     gen_p[col].plot.hist(bins=122, legend=True, ax=ax2, alpha = 0.5)
+
+#     # fig, ax = plt.subplots()
+#     pair = df[(df.n1 == col) | (df.n2 == col)]
+
+#     # Histogram of correlation values
+#     pair.pearson.plot.hist(bins=np.linspace(-1,1,50), ax=ax3,
+#                             label=col, legend=True, alpha = 0.5,)
+
+# ax1.set(ylabel='puissance active [MW]', xlabel='pas de temps [h]')
+# ax1.set(xlim=(0,1e4))
+# ax1.legend([n[:-4] for n in node_to_compare],bbox_to_anchor=(1, 0.81))
+# fig1.tight_layout()
+# figname = 'annexe_Inn-Carv_profils.svg'
+# # plt.savefig(pjoin('figures', figname), dpi=600)
+# fig1.savefig(pjoin('figures', figname), dpi=600)
+
+
+# ax2.set(xlabel='puissance active [MW]', ylabel='récurrence')
+# fig2.tight_layout()
+
+
+# ax3.legend([n[:-4] for n in node_to_compare], loc='upper left')
+# # ax3.set(title=f'Histogramme des corrélations par paire de profile de {ds_type} '
+# #           f'de la production XX (p={pair.shape[0]})')
+# ax3.set(ylabel='récurrence', ylim=(0, 90))
+# ax3.set(xlabel='coefficient de corrélation de Pearson')
+# fig3.tight_layout()
+
+# figname = 'annexe_Inn-Carv_correlation.svg'
+# # plt.savefig(pjoin('figures', figname), dpi=600)
+# fig3.savefig(pjoin('figures', figname), dpi=600)
+
+
+# %% MAKE ANOMALIES ON-OFF
+
+# RANDOM INDEX FOR ANOMALIES (SAME FOR ALL SINGLE NODE ATTACK)
+attack_ratio = 10  # %
+attack_timesteps = (
+    gen_p.sample(frac=attack_ratio / 100, random_state=1)
+    .index.sort_values()
+    .to_frame(False)
+)
+attack_timesteps.to_pickle(pjoin(ds_path, "attacked_timesteps.p"))
+attack_timesteps = attack_timesteps[0].to_list()
+
+criteria["attack_count"] = len(attack_timesteps)
+criteria["attack_ratio"] = attack_ratio
+criteria["off_to_on_count"] = -1
+
+for attack_col in attack_gens[case]:  # Gen number with anomalies
+    # print(1 * '\t', f'make single node attack dataset for generation {attack_col}')
+
+    gen_p_a = gen_p[
+        attack_col
+    ].copy()  # Init df that will containt anomalies  # /!\ Big mistake
+
+    # MAKE ON/OFF ANOMALIES
+    off_on_counter = 0
+    for ts in attack_timesteps:
+        if gen_p_a[ts] > 0:
+            gen_p_a[ts] = 0
+        else:
+            gen_p_a[ts] = criteria["p_nom"][attack_col]
+            off_on_counter += 1
+
+    criteria.at[attack_col, "off_to_on_count"] = off_on_counter
+
+    # SAVE DATASETS
+    if save:
+        gen_p_a.to_pickle(pjoin(ds_path, f"{attack_col}_p_attacked.p"))
+
+
+criteria["off_to_on_ratio"] = criteria["off_to_on_count"] / len(attack_timesteps) * 100
+
+
+# %% VISUALISE ANOMALY
+for attack_col in attack_gens[case]:  # Gen number with anomalies
+    # for attack_col in [234]: # Gen number with anomalies
+    #
+    gen_p_a = pd.read_pickle(pjoin(ds_path, f"{attack_col}_p_attacked.p"))
+
+    t0 = 0
+    # t0 = 24*7*25
+    period = 24 * 7
+    # period = 24
+    # period = gen_p.shape[0]
+    fig, ax = plt.subplots()
+    gen_p_a.plot(ax=ax, label="value sent back to the operator", style="--")
+    gen_p[attack_col].plot(ax=ax, label="real value")
+    # ax.scatter(gen_p.index, gen_p[attack_col], label='mesure', s=5)
+    # ax.scatter(attack_timesteps, gen_p_a[attack_timesteps], label='attaque', s=5)
+    ax.set(
+        title=f"Example of a single attack on production {attack_col} (occ: {attack_ratio})",
+        ylabel="active power [MW]",
+        xlabel="time step [h]",
+        # xlim=(0, period),
+        xlim=(t0, t0 + period),
+        # ylim=(0, 250),
+    )
+    # ax.legend(loc='upper center', bbox_to_anchor=(0.5, 1.2), ncol=2)
+    ax.legend()
+    fig.tight_layout()
+    fig.savefig(
+        pjoin(
+            "figures", "make_anomalies", f"{case}_gen{attack_col}_attack_example.pdf"
+        ),
+        dpi=600,
+    )
+    plt.close(fig)
+    # fig.savefig(pjoin(ds_path, 'single_node_attack_exemple.svg'))
+
+
+# %% SET ANALYSIS
+
+
+# %%% TEST SET ANALYSIS
+
+# RANDOM INDEX FOR TEST (SAME FOR ALL SINGLE NODE ATTACK)
+test_timesteps = (
+    gen_p.sample(frac=0.2, random_state=3).index.sort_values().to_frame(False)
+)
+test_timesteps.to_pickle(pjoin(ds_path, "test_timesteps.p"))
+test_timesteps = test_timesteps[0].to_list()
+
+test_attack_timestep = list(set(attack_timesteps).intersection(test_timesteps))
+criteria["test_attack_count"] = len(test_attack_timestep)
+criteria["test_attack_ratio"] = (
+    criteria["test_attack_count"] / len(test_timesteps) * 100
+)
+
+criteria["test_off_to_on_count"] = -1
+for attack_col in attack_gens[case]:  # Gen number with anomalies
+    off_on_counter = 0
+    for ts in test_attack_timestep:
+        if gen_p.at[ts, attack_col] == 0:
+            off_on_counter += 1
+    criteria.at[attack_col, "test_off_to_on_count"] = off_on_counter
+
+criteria["test_off_to_on_ratio"] = (
+    criteria["test_off_to_on_count"] / criteria["test_attack_count"] * 100
+)
+
+
+# %%% TRAIN SET ANALYSIS
+train_timesteps = [ts for ts in gen_p.index if ts not in test_timesteps]
+
+train_attack_timestep = list(set(attack_timesteps).intersection(train_timesteps))
+criteria["train_attack_count"] = len(train_attack_timestep)
+criteria["train_attack_ratio"] = (
+    criteria["train_attack_count"] / len(train_timesteps) * 100
+)
+
+criteria["train_off_to_on_count"] = -1
+for attack_col in attack_gens[case]:  # Gen number with anomalies
+    off_on_counter = 0
+    for ts in train_attack_timestep:
+        if gen_p.at[ts, attack_col] == 0:
+            off_on_counter += 1
+    criteria.at[attack_col, "train_off_to_on_count"] = off_on_counter
+
+criteria["train_off_to_on_ratio"] = (
+    criteria["train_off_to_on_count"] / criteria["train_attack_count"] * 100
+)
+
+
+criteria = criteria.round(
+    {
+        "z_ratio": 0,
+        "p_mean": 0,
+        "p_nom": 0,
+        "p_nom_ratio": 0,
+        "off_to_on_ratio": 0,
+        "test_off_to_on_ratio": 0,
+        "test_attack_ratio": 0,
+        "train_off_to_on_ratio": 0,
+        "train_attack_ratio": 0,
+    },
+)
+
+criteria["delta"] = abs(
+    criteria["train_off_to_on_ratio"] - criteria["test_off_to_on_ratio"]
+)
+
+
+# %% RUNNING TIME
+ex_time = int(time.time() - start_time)
+print(f"\nTotal run time :\t{ex_time} [s]  -  {ex_time / 3600:.2f} [h] ")

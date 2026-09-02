@@ -39,7 +39,8 @@ color_models = {
 # %% PATH MANAGER
 os.chdir("..")  # Working directory is repo main
 
-nets_dict = ["CH", "DE", "ES"]  # List with all nets
+# nets_dict = ["CH", "DE", "ES"]  # List with all nets
+nets_dict = ["CH"]
 
 models_dict = load_models()  # Dictionary with all supervised models
 models_dict["lstm"] = {}  # unsupervised from google colab
@@ -323,7 +324,7 @@ plt.savefig(pjoin("figures", "unique_f2-score_5best_boxplot.pdf"), dpi=600)
 plt.close(fig)
 
 
-# %%% PLOT PRECISION AGAINST RECALL
+# %%% PLOT PRECISION AGAINST RECALL, WITH MARGINAL BOX PLOTS
 
 # compute precision and recall
 best_results["precision"] = best_results["tp"] / (
@@ -331,27 +332,81 @@ best_results["precision"] = best_results["tp"] / (
 )
 best_results["recall"] = best_results["tp"] / (best_results["tp"] + best_results["fn"])
 
+plot_models = ["GBC", "MLPC", "LSTMC", "MLPR", "LSTMR"]
+xlim = (0.85, 1)
+ylim = (0.85, 1)
 
-fig, ax = plt.subplots(figsize=(6, 5))  # f2_score comparison by model and node
+fig = plt.figure(figsize=(6, 6))
+gs = fig.add_gridspec(
+    2,
+    2,
+    width_ratios=(1, 4),
+    height_ratios=(4, 1),
+    wspace=0.05,
+    hspace=0.05,
+)
+ax = fig.add_subplot(gs[0, 1])
+ax_boxy = fig.add_subplot(gs[0, 0], sharey=ax)  # recall distribution, to the left
+ax_boxx = fig.add_subplot(gs[1, 1], sharex=ax)  # precision distribution, below
 
-# for model in ['GBC', 'MLPC', 'LSTMC']:
-# for model in ['MLPR', 'LSTMR']:
-for model in ["GBC", "MLPC", "LSTMC", "MLPR", "LSTMR"]:
+for model in plot_models:
     model_results = best_results[best_results.model == model]
-    model_results.plot.scatter(
-        "precision",
-        "recall",
-        ax=ax,
+    marker = "+" if model in ["MLPR", "LSTMR"] else "o"
+    ax.scatter(
+        model_results["precision"],
+        model_results["recall"],
         label=model,
         c=color_models[model],
-        marker="+" if model in ["MLPR", "LSTMR"] else "o",
+        marker=marker,
     )
-# ax.set(xlabel='Precision', ylabel='Recall', xlim=(0.87, 1), ylim=(0.9, 1))
-ax.set(xlabel="Precision", ylabel="Recall", xlim=(0.85, 1), ylim=(0.85, 1))
+
+positions = range(len(plot_models))
+
+# value axis (recall) is vertical, aligned with ax's y-axis
+bp_y = ax_boxy.boxplot(
+    [best_results.loc[best_results.model == m, "recall"] for m in plot_models],
+    positions=positions,
+    vert=True,
+    widths=0.6,
+    patch_artist=True,
+)
+# value axis (precision) is horizontal, aligned with ax's x-axis
+bp_x = ax_boxx.boxplot(
+    [best_results.loc[best_results.model == m, "precision"] for m in plot_models],
+    positions=positions,
+    vert=False,
+    widths=0.6,
+    patch_artist=True,
+)
+
+for bp in (bp_y, bp_x):
+    for patch, model in zip(bp["boxes"], plot_models):
+        patch.set_facecolor(color_models[model])
+        patch.set_edgecolor(color_models[model])
+        patch.set_alpha(0.5)
+    for part in ("whiskers", "caps"):
+        for line, model in zip(bp[part], [m for m in plot_models for _ in range(2)]):
+            line.set_color(color_models[model])
+    for line, model in zip(bp["medians"], plot_models):
+        line.set_color(color_models[model])
+        line.set_linewidth(1.5)
+    for flier, model in zip(bp["fliers"], plot_models):
+        flier.set_markeredgecolor(color_models[model])
+        flier.set_marker("o")
+        flier.set_markersize(3)
+
+ax.set(xlim=xlim, ylim=ylim)
+ax.tick_params(labelbottom=False, labelleft=False)
 ax.legend(loc="lower left")
+
+ax_boxx.set(xlabel="Precision", ylim=(-0.5, len(plot_models) - 0.5))
+ax_boxx.tick_params(labelleft=False, left=False)
+
+ax_boxy.set(ylabel="Recall", xlim=(-0.5, len(plot_models) - 0.5))
+ax_boxy.tick_params(labelbottom=False, bottom=False)
+
 fig.tight_layout()
 
-# plt.savefig(pjoin('figures', f'precision-recall-classifiers.pdf'), dpi=600)
 plt.savefig(pjoin("figures", "precision-recall.pdf"), dpi=600)
 plt.close(fig)
 

@@ -5,12 +5,12 @@ import os
 import shutil
 from itertools import product
 from os.path import join as pjoin
+from pathlib import Path
 
 import pandas as pd
 
-# %% SAVE FROM GDRIVE TO FICC (Z:)
-# os.chdir('..')  # Working directory in 10_Armasuisse2024
-os.chdir(os.getcwd().split("10_Armasuisse2024")[0] + "10_Armasuisse2024")
+os.chdir(Path(__file__).resolve().parent.parent)
+
 
 nets = ["CH", "DE", "ES"]  # List with all nets
 # nets = ['CH']  # List with all nets
@@ -24,7 +24,7 @@ approaches = ["supervised", "unsupervised"]  # List with all ml approaches
 
 sequences = [4, 24]
 
-colab_dir = pjoin("codes", "colab_armasuisse2024")
+colab_dir = pjoin("codes", "lstm")
 
 # %% LOOP
 

@@ -4,6 +4,7 @@ import os
 import sys
 from itertools import combinations
 from os.path import join as pjoin
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -11,8 +12,9 @@ import pandas as pd
 from pandas import read_pickle as rpckl
 
 # %% PATH/NAME MANAGER
-# os.chdir('..')  # Working directory in 10_Armasuisse2024
-os.chdir(os.getcwd().split("10_Armasuisse2024")[0] + "10_Armasuisse2024/codes")
+os.chdir(Path(__file__).resolve().parent.parent / "codes")
+
+
 raw_folder = "raw_data"
 
 sys.path.append(os.getcwd())
@@ -20,7 +22,7 @@ sys.path.append(os.getcwd())
 from functions import load_gen_data
 
 # %% [1] PARAMETERS
-os.chdir("..")  # Working directory in 10_Armasuisse2024
+os.chdir("..")  # Working directory is repo main
 
 case = "CH"
 

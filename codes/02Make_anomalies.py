@@ -5,11 +5,12 @@
 import os
 import time
 from os.path import join as pjoin
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
-os.chdir(os.getcwd().split("10_Armasuisse2024")[0] + "10_Armasuisse2024/codes")
+os.chdir(Path(__file__).resolve().parent.parent / "codes")
 import sys
 
 sys.path.append(os.getcwd())
@@ -41,8 +42,7 @@ start_time = time.time()  # For total running time
 
 
 # %% PATH/NAME MANAGER
-# os.chdir('..')  # Working directory in 10_Armasuisse2024
-os.chdir(os.getcwd().split("10_Armasuisse2024")[0] + "10_Armasuisse2024")
+os.chdir(Path(__file__).resolve().parent.parent)
 
 save = True
 case = "ES"

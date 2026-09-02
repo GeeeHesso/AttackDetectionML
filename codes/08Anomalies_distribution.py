@@ -3,6 +3,7 @@
 import os
 import sys
 from os.path import join as pjoin
+from pathlib import Path
 
 # MATPLOTLIB PARAMETERS
 import matplotlib.pyplot as plt
@@ -25,16 +26,16 @@ save_extension = "png"
 
 
 # %% PATH/NAME MANAGER
-# os.chdir('..')  # Working directory in 10_Armasuisse2024
-os.chdir(os.getcwd().split("10_Armasuisse2024")[0] + "10_Armasuisse2024/codes")
+os.chdir(Path(__file__).resolve().parent.parent / "codes")
+
 raw_folder = "raw_data"
 
 sys.path.append(os.getcwd())
 
-from functions import load_data, load_models
+from functions import load_data
 
 # %% [1] PARAMETERS
-os.chdir("..")  # Working directory in 10_Armasuisse2024
+os.chdir("..")  # Working directory is repo main
 
 case = "CH"
 

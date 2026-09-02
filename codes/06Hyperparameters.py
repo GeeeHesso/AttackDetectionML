@@ -2,11 +2,12 @@
 
 import os
 from os.path import join as pjoin
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
-os.chdir(os.getcwd().split("10_Armasuisse2024")[0] + "10_Armasuisse2024")
+os.chdir(Path(__file__).resolve().parent.parent)
 
 cases = ["CH", "DE", "ES"]
 models = ["gbc"]

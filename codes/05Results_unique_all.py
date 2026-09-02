@@ -3,15 +3,16 @@
 
 # %% PACKAGES
 import os
+import sys
 from itertools import product
 from os.path import join as pjoin
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-os.chdir(os.getcwd().split("10_Armasuisse2024")[0] + "10_Armasuisse2024/codes")
-import sys
+os.chdir(Path(__file__).resolve().parent.parent / "codes")
 
 sys.path.append(os.getcwd())
 from functions import load_models, get_gen_names
@@ -52,7 +53,7 @@ color_models = {
 
 
 # %% PATH MANAGER
-os.chdir("..")  # Working directory in 10_Armasuisse2024
+os.chdir("..")  # Working directory is repo main
 
 nets_dict = ["CH", "DE", "ES"]  # List with all nets
 

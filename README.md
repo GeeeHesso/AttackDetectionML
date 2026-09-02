@@ -32,7 +32,7 @@ The dataset used in this project is publicly available on Zenodo:
 
 ## Execution
 
-The multiples Python files in the [`codes`](./codes/) directory must be run sequentially.
+The multiples Python scripts in the [`codes`](./codes/) directory must be run sequentially.
 
 ### Data preprocessing
 

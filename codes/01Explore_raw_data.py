@@ -5,6 +5,7 @@
 import os
 import time
 from os.path import join as pjoin
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -31,7 +32,7 @@ start_time = time.time()  # For total running time
 
 
 # %% PATH/NAME MANAGER
-os.chdir(os.path.dirname(os.path.realpath(__file__)))
+os.chdir(Path(__file__).resolve().parent.parent)
 
 raw_folder = "raw_data"
 

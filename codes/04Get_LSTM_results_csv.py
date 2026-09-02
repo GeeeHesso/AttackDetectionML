@@ -24,7 +24,7 @@ approaches = ["supervised", "unsupervised"]  # List with all ml approaches
 
 sequences = [4, 24]
 
-colab_dir = pjoin("codes", "lstm")
+lstm_dir = pjoin("codes", "lstm")
 
 # %% LOOP
 
@@ -35,7 +35,7 @@ for approach, net_key, model_key, ds_type, seq in cartesian:
     ds_path = pjoin("datasets", net_key)
     attacked_gens = pd.read_pickle(pjoin(ds_path, "attacked_gens.p"))
 
-    src_dir = pjoin(colab_dir, "results", approach, "single_node_attack", net_key)
+    src_dir = pjoin(lstm_dir, "results", approach, "single_node_attack", net_key)
 
     if approach == "supervised":
         dst_dir = pjoin("results", "supervised", "single_node_attack", net_key)

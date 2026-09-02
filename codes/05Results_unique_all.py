@@ -45,9 +45,7 @@ color_models = {
 """ 
 05Results_unique_supervised_unsupervised.py :
     
-    Compile all supervised & unsupervised ML results
-    from armasuisse 2024 paper.
-                                    
+    Compile all supervised & unsupervised ML results                                    
 
 """
 

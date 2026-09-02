@@ -96,7 +96,8 @@ for net_key, model_key, ds_type, seq, contextual in cartesian:
         if model_key == "mlpr":
             f_path = pjoin(res_path, "gscv_best_params.p")
             if os.path.isfile(f_path):
-                params = pickle.load(open(f_path, "rb"))
+                with open(f_path, "rb") as f:
+                    params = pickle.load(f)
 
             hyper = pd.DataFrame(
                 [net_key, model_key, attack_gen, ds_type, seq, contextual, params],
@@ -105,7 +106,8 @@ for net_key, model_key, ds_type, seq, contextual in cartesian:
             hyper_all = pd.concat([hyper_all, hyper], axis=1)
 
             # [2.2] LOAD LEARNING
-            estimator = pickle.load(open(pjoin(res_path, "gscv_trained.p"), "rb"))
+            with open(pjoin(res_path, "gscv_trained.p"), "rb") as f:
+                estimator = pickle.load(f)
 
             learning = pd.DataFrame(
                 [
@@ -393,25 +395,25 @@ model_dict = {
 }
 
 for set_type, df_set in result.groupby("set"):
-    for metric in metric_dict.keys():
-        data = dict()
+    for metric, metric_label in metric_dict.items():
+        data = {}
         for model, df in df_set.groupby("model"):
             data[model] = df[metric].tolist()
             # print(set_type, model, df.shape)
 
-        data = pd.DataFrame(dict([(k, pd.Series(v)) for k, v in data.items()]))
+        data = pd.DataFrame({k: pd.Series(v) for k, v in data.items()})
         data = data.rename(columns=model_dict)
         # print(data.median())
         fig, ax = plt.subplots(figsize=(8, 2.5))
         data.plot.box(ax=ax, vert=False)
-        ax.set(xlabel=metric_dict[metric])
+        ax.set(xlabel=metric_label)
         ax.set(title=set_type)
         if metric == "rmse":
             ax.set(xlim=0)
         if metric == "normalized_rmse":
             ax.set(xlim=0)
 
-        ax.set(xlabel=metric_dict[metric])
+        ax.set(xlabel=metric_label)
         fig.tight_layout()
 
         if set_type == "validation set":

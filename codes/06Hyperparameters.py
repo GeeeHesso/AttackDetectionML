@@ -10,9 +10,10 @@ import pandas as pd
 
 os.chdir(Path(__file__).resolve().parent.parent)
 
-cases = ["CH", "DE", "ES"]
-models = ["gbc"]
-params = []
+# cases = ["CH", "DE", "ES"]
+cases = ["CH"]
+models = ["nb"]
+params = ["var_smoothing"]
 ds_types = ["injection", "generation"]
 sequence_lens = [4, 24]
 contextual_lens = ["t", "hist"]
@@ -60,15 +61,9 @@ for model in models:
                         for p in params:
                             if p in df:
                                 params_list[p].append(df[p])
-                print(
-                    "Min     : ",
-                    {p: np.array(values).min() for p, values in params_list.items()},
-                )
-                print(
-                    "Max     : ",
-                    {p: np.array(values).max() for p, values in params_list.items()},
-                )
-                print(
-                    "Average : ",
-                    {p: np.array(values).mean() for p, values in params_list.items()},
-                )
+                for p, values in params_list.items():
+                    if len(values) > 0:
+                        print(p)
+                        print("  Min: ", np.array(values).min())
+                        print("  Max: ", np.array(values).max())
+                        print("  Avg: ", np.array(values).mean())

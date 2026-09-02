@@ -51,7 +51,7 @@ ftwo_scorer = make_scorer(fbeta_score, beta=2)  # Error that weights recall
 
 
 # %%  [2]  DEBUG PARAMETERS
-# keys = ['nb', 'rf'] # few minutes
+keys = ["nb", "rf"]  # few minutes
 # keys = ['svc', 'knn'] # few hours
 # keys = ['gbc', 'mlpc'] # many hours
 # keys = ['gbc']
@@ -68,7 +68,6 @@ cartesian = product(
 )
 
 net_key_old = ""
-c = 0  # Fit counter
 cartesian_length = (
     len(nets_dict)
     * len(models_dict.keys())
@@ -77,9 +76,7 @@ cartesian_length = (
     * len(contextual_lens)
 )
 
-for net_key, model_key, ds_type, seq, contextual in cartesian:
-    c += 1
-
+for c, (net_key, model_key, ds_type, seq, contextual) in enumerate(cartesian, start=1):
     if net_key != net_key_old:  # Avoid doing same things
         net_key_old = net_key
 
@@ -230,14 +227,17 @@ for net_key, model_key, ds_type, seq, contextual in cartesian:
 
             if train_size == 1:
                 f_path = pjoin(dir_path, "gscv_trained.p")
-                pickle.dump(grid.best_estimator_, open(f_path, "wb"))
+                with open(f_path, "wb") as f:
+                    pickle.dump(grid.best_estimator_, f)
 
                 f_path = pjoin(dir_path, "gscv_best_params.p")
-                pickle.dump(grid.best_params_, open(f_path, "wb"))
+                with open(f_path, "wb") as f:
+                    pickle.dump(grid.best_params_, f)
 
                 if X_scaler is not None:
                     f_path = pjoin(dir_path, "scaler.p")
-                    pickle.dump(X_scaler, open(f_path, "wb"))
+                    with open(f_path, "wb") as f:
+                        pickle.dump(X_scaler, f)
 
         # [10] SAVE INFOS
         cm = np.array(cm)

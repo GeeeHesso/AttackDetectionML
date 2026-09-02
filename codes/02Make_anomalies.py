@@ -142,7 +142,7 @@ criteria["p_max"] = gen_info.pmax.tolist()
 
 
 # %%% MOST FREQUENT POWER
-max_values, max_occ = list(), list()
+max_values, max_occ = [], []
 for col in gen_p:
     values, bins = np.histogram(gen_p[col], bins=122)  # At least bin size of 10 MW
     max_index = np.argmax(values)  # Finding the most frequently power
@@ -177,7 +177,7 @@ data_dict = {"gen": gen_p, "injection": pd.concat([load_p, gen_p], axis=1)}
 for ds_type, data in data_dict.items():
     # Stack correlation matrix
     corr = data.corr()
-    n1, n2, values = list(), list(), list()
+    n1, n2, values = [], [], []
     for col in range(corr.shape[0]):
         for row in range(col + 1, corr.shape[0]):
             # print(row, col)
@@ -214,7 +214,7 @@ for col in gen_p.columns:
 
 cst = pd.DataFrame({"value": cst}, index=gen_p.columns)
 cst["len"] = [len(x) for x in cst.value]
-cst["most_frequent"] = [item[list(item.keys())[0]] for item in cst.value]
+cst["most_frequent"] = [item[next(iter(item.keys()))] for item in cst.value]
 print(cst[cst.most_frequent > 0.99 * gen_p.shape[0]].index)
 
 

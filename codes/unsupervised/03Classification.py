@@ -269,7 +269,7 @@ for net_key, model_key, ds_type, seq, contextual in cartesian:
         # OPTIMISE THRESHOLD WITH VALIDATION SET
         threshold_max = int(y_val["absolute_error"].max())
 
-        cm, f2_score = list(), list()
+        cm, f2_score = [], []
         for threshold in range(1, threshold_max):
             y_class_predict = y_val["absolute_error_hacked"] > threshold
 

@@ -103,7 +103,8 @@ for net_key, model_key, ds_type, seq, contextual in cartesian:
         if model_key != "lstm":
             f_path = pjoin(res_path, "gscv_best_params.p")
             if os.path.isfile(f_path):
-                params = pickle.load(open(f_path, "rb"))
+                with open(f_path, "rb") as f:
+                    params = pickle.load(f)
 
                 hyper = pd.DataFrame(
                     [net_key, model_key, ds_type, attack_gen, params], index=hyper_idx
@@ -124,7 +125,8 @@ for net_key, model_key, ds_type, seq, contextual in cartesian:
                 f_path = pjoin(res_path, learner_file)
                 if not os.path.isfile(f_path):
                     continue
-                estimator = pickle.load(open(f_path, "rb"))
+                with open(f_path, "rb") as f:
+                    estimator = pickle.load(f)
 
                 learning = pd.DataFrame(
                     [
@@ -234,15 +236,15 @@ for est_type, result_type in learning_mlpc.groupby("learning"):
 # %% [5] BEST MODEL BY NODE
 cm_net = cm_all[cm_all.net == case]  # Useless for the moment
 
-f2_scores = {key: list() for key in cm_net.model.unique()}
+f2_scores = {key: [] for key in cm_net.model.unique()}
 for node in cm_net.attack_gen.unique():
     cm_node = cm_net[cm_net.attack_gen == node]
 
     # for model in models_dict.keys():
-    for model in f2_scores.keys():
+    for model, scores in f2_scores.items():
         cm_model = cm_node[cm_node.model == model]
 
-        f2_scores[model].append(cm_model.f2_score.iat[0])
+        scores.append(cm_model.f2_score.iat[0])
 
 f2_scores = pd.DataFrame(f2_scores, index=cm_net.attack_gen.unique())
 
@@ -261,14 +263,14 @@ plt.close(fig)
 
 
 # %%% [5.1] LSTM VS MLPC VS GBC
-gbc_mlpc = {key: list() for key in ["gbc", "mlpc", "lstm"]}
+gbc_mlpc = {key: [] for key in ["gbc", "mlpc", "lstm"]}
 for node in cm_net.attack_gen.unique():
     cm_node = cm_net[cm_net.attack_gen == node]
 
-    for model in gbc_mlpc.keys():
+    for model, scores in gbc_mlpc.items():
         cm_model = cm_node[cm_node.model == model]
 
-        gbc_mlpc[model].append(cm_model.f2_score.iat[0])
+        scores.append(cm_model.f2_score.iat[0])
 
 
 gbc_mlpc = pd.DataFrame(gbc_mlpc, index=cm_net.attack_gen.unique())
@@ -299,15 +301,15 @@ plt.close(fig)
 cm_net = cm_all[cm_all.net == case]  # Useless for the moment
 cm_net.sort_values(by="f5_score", ascending=False, inplace=True)
 
-f5_scores = {key: list() for key in cm_net.model.unique()}
+f5_scores = {key: [] for key in cm_net.model.unique()}
 for node in cm_net.attack_gen.unique():
     cm_node = cm_net[cm_net.attack_gen == node]
 
     # for model in models_dict.keys():
-    for model in f5_scores.keys():
+    for model, scores in f5_scores.items():
         cm_model = cm_node[cm_node.model == model]
 
-        f5_scores[model].append(cm_model.f5_score.iat[0])
+        scores.append(cm_model.f5_score.iat[0])
 
 f5_scores = pd.DataFrame(f5_scores, index=cm_net.attack_gen.unique())
 

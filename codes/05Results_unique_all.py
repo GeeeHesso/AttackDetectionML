@@ -72,7 +72,7 @@ columns_to_keep = [
     "learning",
 ]
 net_old = ""
-results = list()
+results = []
 for net, model, ds_type, seq, contextual in cartesian:
     if net != net_old:  # Avoid doing same things
         net_old = net
@@ -319,7 +319,7 @@ f2_scores_5best.plot.box(ax=ax)
 ax.set(ylabel="F\u2082", ylim=(0.85, 1))
 fig.tight_layout()
 
-plt.savefig(pjoin("figures", f"unique_f2-score_5best_boxplot.pdf"), dpi=600)
+plt.savefig(pjoin("figures", "unique_f2-score_5best_boxplot.pdf"), dpi=600)
 plt.close(fig)
 
 
@@ -352,7 +352,7 @@ ax.legend(loc="lower left")
 fig.tight_layout()
 
 # plt.savefig(pjoin('figures', f'precision-recall-classifiers.pdf'), dpi=600)
-plt.savefig(pjoin("figures", f"precision-recall.pdf"), dpi=600)
+plt.savefig(pjoin("figures", "precision-recall.pdf"), dpi=600)
 plt.close(fig)
 
 # %%% LIST EXISTING AND MISSING RESULTS

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3,
+#!/usr/bin/env python3
 """Grid search cross-validation for unsupervised models, with optimisation of hyperparameters."""
 
 # %% PACKAGES
@@ -61,7 +61,6 @@ cartesian = product(
 )
 
 net_key_old = ""
-c = 0  # Fit counter
 cartesian_length = (
     len(nets_dict)
     * len(models_dict.keys())
@@ -70,9 +69,7 @@ cartesian_length = (
     * len(contextual_lens)
 )
 
-for net_key, model_key, ds_type, seq, contextual in cartesian:
-    c += 1
-
+for c, (net_key, model_key, ds_type, seq, contextual) in enumerate(cartesian, start=1):
     if net_key != net_key_old:  # Avoid doing same things
         net_key_old = net_key
         dir_dataset = pjoin("datasets", net_key)
@@ -131,13 +128,17 @@ for net_key, model_key, ds_type, seq, contextual in cartesian:
         )
 
         ## SAVE INDEX FOR GOOGLE COLAB
-        # reg_val_idx = y_val.reset_index()['index'].sort_values()
-        # reg_val_idx.to_pickle(pjoin(dir_dataset, 'regression_validation_timesteps.p'))
-        # reg_val_idx = rpckl(pjoin(dir_dataset, 'regression_validation_timesteps.p')).to_list()
+        reg_val_idx = y_val.reset_index()["index"].sort_values()
+        reg_val_idx.to_pickle(pjoin(dir_dataset, "regression_validation_timesteps.p"))
+        reg_val_idx = rpckl(
+            pjoin(dir_dataset, "regression_validation_timesteps.p")
+        ).to_list()
 
-        # reg_train_idx = y_train.reset_index()['index'].sort_values()
-        # reg_train_idx.to_pickle(pjoin(dir_dataset, 'regression_train_timesteps.p'))
-        # reg_train_idx = rpckl(pjoin(dir_dataset, 'regression_train_timesteps.p')).to_list()
+        reg_train_idx = y_train.reset_index()["index"].sort_values()
+        reg_train_idx.to_pickle(pjoin(dir_dataset, "regression_train_timesteps.p"))
+        reg_train_idx = rpckl(
+            pjoin(dir_dataset, "regression_train_timesteps.p")
+        ).to_list()
 
         # SCALER
         X_scaler = MinMaxScaler()
@@ -227,10 +228,12 @@ for net_key, model_key, ds_type, seq, contextual in cartesian:
         os.makedirs(dir_result, exist_ok=True)
 
         f_path = pjoin(dir_result, "gscv_trained.p")
-        pickle.dump(grid.best_estimator_, open(f_path, "wb"))
+        with open(f_path, "wb") as f:
+            pickle.dump(grid.best_estimator_, f)
 
         f_path = pjoin(dir_result, "gscv_best_params.p")
-        pickle.dump(grid.best_params_, open(f_path, "wb"))
+        with open(f_path, "wb") as f:
+            pickle.dump(grid.best_params_, f)
 
         # SAVE METRICS
         metrics.to_pickle(pjoin(dir_result, "gscv_regression_metrics.p"))
@@ -254,10 +257,12 @@ for net_key, model_key, ds_type, seq, contextual in cartesian:
 
         # SAVE SCALERS
         f_path = pjoin(dir_result, "scaler_x.p")
-        pickle.dump(X_scaler, open(f_path, "wb"))
+        with open(f_path, "wb") as f:
+            pickle.dump(X_scaler, f)
 
         f_path = pjoin(dir_result, "scaler_y.p")
-        pickle.dump(y_scaler, open(f_path, "wb"))
+        with open(f_path, "wb") as f:
+            pickle.dump(y_scaler, f)
 
 # %% RUNNING TIME
 ex_time = int(time() - start_time)

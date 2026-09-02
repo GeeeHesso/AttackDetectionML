@@ -135,7 +135,7 @@ for country in ["CH", "DE", "ES"]:
     )
     ax.legend()
     fig.tight_layout()
-    fig.savefig(pjoin("figures", "raw_data", "%s_power_balance.pdf" % country), dpi=600)
+    fig.savefig(pjoin("figures", "raw_data", f"{country}_power_balance.pdf"), dpi=600)
 
     # PROFILES DESCRIPTION
     gen_types, total_gen_percents, mean_power = [], [], []
@@ -175,7 +175,7 @@ for country in ["CH", "DE", "ES"]:
     for ds_type, data in data_dict.items():
         # Stack correlation matrix
         corr = data.corr()
-        n1, n2, values = list(), list(), list()
+        n1, n2, values = [], [], []
         for col in range(corr.shape[0]):
             for row in range(col + 1, corr.shape[0]):
                 # print(row, col)
@@ -209,7 +209,7 @@ for country in ["CH", "DE", "ES"]:
         )
         fig.tight_layout()
         fig.savefig(
-            pjoin("figures", "raw_data", "%s_correlations.pdf" % country), dpi=600
+            pjoin("figures", "raw_data", f"{country}_correlations.pdf"), dpi=600
         )
 
 
@@ -269,7 +269,7 @@ for countrys in all_list:
     fig.tight_layout()
     fig.savefig(
         pjoin(
-            "figures", "raw_data", "%s-%s_correlations.pdf" % (countrys[0], countrys[1])
+            "figures", "raw_data", f"{countrys[0]}-{countrys[1]}_correlations.pdf"
         ),
         dpi=600,
     )
@@ -303,7 +303,7 @@ for country in countries:
             for ds_type, data in data_dict.items():
                 # Stack correlation matrix
                 corr = data.corr()
-                n1, n2, values = list(), list(), list()
+                n1, n2, values = [], [], []
                 for col in range(corr.shape[0]):
                     for row in range(col + 1, corr.shape[0]):
                         # print(row, col)
@@ -339,26 +339,26 @@ for country in countries:
         fig.tight_layout()
         fig.savefig(
             pjoin(
-                "figures", "raw_data", "%s_correlations_%s.pdf" % (country, gen_type)
+                "figures", "raw_data", f"{country}_correlations_{gen_type}.pdf"
             ),
             dpi=600,
         )
 
 
 # %% ANNUAL PROD STRUCTURE IN VARIOUS COUNTRIES
-countries = [country for country in description.keys()]
+countries = [country for country in description]
 
 prod_by_type = {gen_type: [] for gen_type in gen_info_all["type"].unique()}
 
 for country in countries:
-    for gen_type in prod_by_type.keys():
+    for gen_type, values_by_type in prod_by_type.items():
         sum_by_type = 0
         if gen_type in description[country].type.values:
             prod = description[country][description[country].type == gen_type][
                 "annual production %"
             ]
             sum_by_type += prod.values[0]
-        prod_by_type[gen_type].append(sum_by_type)
+        values_by_type.append(sum_by_type)
 
 structure = pd.DataFrame(prod_by_type, index=countries)
 

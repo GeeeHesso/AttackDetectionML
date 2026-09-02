@@ -22,7 +22,7 @@ from sklearn.preprocessing import MinMaxScaler
 os.chdir(Path(__file__).resolve().parent.parent)
 
 sys.path.append(os.getcwd())
-from functions import load_data, load_models
+from functions import load_data, load_models, years_timesteps
 
 start_time = time()  # For total running time
 
@@ -40,6 +40,16 @@ models_dict = {"mlpr": models_dict["mlpr"]}  # Dictionary with all regression mo
 
 sequence_lens = [4, 24]  # 6 hours or 1 hour
 contextual_lens = ["t", "hist"]  # W/O historical values for contextual variable
+
+# %%% TRAIN/VALIDATION SPLIT METHOD
+# "random": 80/20 random split of the non-test timesteps (original method)
+# "fixed_years": entire simulated years held out as validation set
+val_split_method = "fixed_years"
+
+# Only used when val_split_method == "fixed_years"
+# Each entry is a (calendar year, series) pair, e.g. (2018, 3) is the third
+# simulated replica of 2018 (raw_data/gens_2018_3.csv).
+val_years = [(2018, 3), (2019, 3), (2020, 3)]
 
 
 # %% DEBUG PARAMETERS
@@ -88,6 +98,16 @@ for c, (net_key, model_key, ds_type, seq, contextual) in enumerate(cartesian, st
             ts for ts in gen_p.index if ts not in classification_test_index
         ]
 
+        if val_split_method == "fixed_years":
+            regression_val_index = [
+                ts for ts in years_timesteps(val_years) if ts in regression_index
+            ]
+            regression_train_index = [
+                ts for ts in regression_index if ts not in regression_val_index
+            ]
+        elif val_split_method != "random":
+            raise ValueError(f"Unknown val_split_method: {val_split_method!r}")
+
     model = models_dict[model_key]
 
     # LOOP FOR ATTACKED NODE
@@ -117,15 +137,21 @@ for c, (net_key, model_key, ds_type, seq, contextual) in enumerate(cartesian, st
 
         X = pd.concat([X_context, X_hist], axis=1)
 
-        X_train_val = X.iloc[regression_index, :]
-        y_train_val = y.iloc[regression_index, :]
-
         X_test = X.iloc[classification_test_index, :]
         y_test = y.iloc[classification_test_index, :]
 
-        X_train, X_val, y_train, y_val = train_test_split(
-            X_train_val, y_train_val, test_size=0.2, random_state=42
-        )
+        if val_split_method == "random":
+            X_train_val = X.iloc[regression_index, :]
+            y_train_val = y.iloc[regression_index, :]
+
+            X_train, X_val, y_train, y_val = train_test_split(
+                X_train_val, y_train_val, test_size=0.2, random_state=42
+            )
+        else:  # "fixed_years"
+            X_train = X.iloc[regression_train_index, :]
+            y_train = y.iloc[regression_train_index, :]
+            X_val = X.iloc[regression_val_index, :]
+            y_val = y.iloc[regression_val_index, :]
 
         ## SAVE INDEX FOR GOOGLE COLAB
         reg_val_idx = y_val.reset_index()["index"].sort_values()

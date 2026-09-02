@@ -11,6 +11,32 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.neural_network import MLPClassifier, MLPRegressor
 from sklearn.svm import SVC
 
+N_TIMESTEPS_PER_YEAR = 8736  # 364 days x 24 hours, per simulated year
+SIMULATED_CALENDAR_YEARS = [2016, 2017, 2018, 2019, 2020]
+SIMULATED_SERIES = [1, 2, 3, 4]
+
+
+def year_series_timesteps(year, series, n_timesteps_per_year=N_TIMESTEPS_PER_YEAR):
+    """Row indices covered by one (calendar year, series) chunk of the
+    concatenated timeseries built by load_data/load_gen_data.
+
+    E.g. (2018, 3) corresponds to raw_data/gens_2018_3.csv and
+    raw_data/loads_2018_3.csv, the third simulated replica of 2018.
+    """
+    chunk = (series - 1) * len(SIMULATED_CALENDAR_YEARS) + (
+        year - SIMULATED_CALENDAR_YEARS[0]
+    )
+    start = chunk * n_timesteps_per_year
+    return list(range(start, start + n_timesteps_per_year))
+
+
+def years_timesteps(year_series_pairs):
+    """Concatenate the timesteps covered by several (year, series) chunks."""
+    timesteps = []
+    for year, series in year_series_pairs:
+        timesteps.extend(year_series_timesteps(year, series))
+    return timesteps
+
 
 def load_gen_data(country_code, n_year=20, replace_small_value=False):
 

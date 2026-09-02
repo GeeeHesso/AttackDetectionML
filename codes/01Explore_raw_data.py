@@ -106,6 +106,7 @@ ax.set(
 ax.legend()
 fig.tight_layout()
 fig.savefig(pjoin("figures", "raw_data", "power_balance.pdf"), dpi=600)
+plt.close(fig)
 
 # %% CH, FR & DE
 description = {}
@@ -136,6 +137,7 @@ for country in ["CH", "DE", "ES"]:
     ax.legend()
     fig.tight_layout()
     fig.savefig(pjoin("figures", "raw_data", f"{country}_power_balance.pdf"), dpi=600)
+    plt.close(fig)
 
     # PROFILES DESCRIPTION
     gen_types, total_gen_percents, mean_power = [], [], []
@@ -211,6 +213,7 @@ for country in ["CH", "DE", "ES"]:
         fig.savefig(
             pjoin("figures", "raw_data", f"{country}_correlations.pdf"), dpi=600
         )
+        plt.close(fig)
 
 
 # %%% COMPARISON WITH CH
@@ -273,6 +276,7 @@ for countrys in all_list:
         ),
         dpi=600,
     )
+    plt.close(fig)
 
 
 # %%% BY PROD TYPE
@@ -343,6 +347,7 @@ for country in countries:
             ),
             dpi=600,
         )
+        plt.close(fig)
 
 
 # %% ANNUAL PROD STRUCTURE IN VARIOUS COUNTRIES
@@ -384,6 +389,7 @@ ax.legend(
 ax.tick_params(axis="x", labelrotation=0)
 fig.tight_layout()
 fig.savefig(pjoin("figures", "raw_data", "production_structure.pdf"), dpi=600)
+plt.close(fig)
 
 
 # %% MONTHLY PROD STRUCTURE IN CH
@@ -439,6 +445,7 @@ ax.tick_params(axis="x", labelrotation=0)
 
 fig.tight_layout()
 fig.savefig(pjoin("figures", "raw_data", "CH_production_structure.pdf"), dpi=600)
+plt.close(fig)
 
 
 # %% RUNNING TIME

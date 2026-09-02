@@ -48,6 +48,12 @@ under [`figures`](./figures) for manual dataset exploration and validation.
 1. [`01GSCV.py`](./codes/supervised/01GSCV.py)
 2. [`02Results_unique.py`](./codes/supervised/02Results_unique.py)
 
+Training loops can take a significant time to run. To run in the background, e.g. on a compute server, use
+
+```sh
+nohup python -u codes/supervised/01GSCV.py > supervised.out &
+```
+
 ### Unsupervised models
 
 1. [`01GSCV.py`](./codes/unsupervised/01GSCV.py)

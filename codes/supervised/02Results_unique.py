@@ -400,10 +400,12 @@ for model, result_model in cm_net.groupby("model"):
 # %% [7] LSTM RESULTS ANALYSIS
 cm_lstm = cm_net[cm_net.model == "lstm"]
 
-
 # %%% [7.1] INJ VS GEN F2_SCORE
 f2_score_lstm = pd.DataFrame()
 for gtype, df in cm_lstm.groupby("ds_type"):
+    df = df.loc[
+        df.groupby("attack_gen").f2_score.idxmax()
+    ]  # marginalize over other params
     df.set_index("attack_gen", inplace=True)
     f2_score_lstm[gtype] = df.f2_score
 
@@ -445,6 +447,9 @@ fneg = pd.DataFrame()
 tpos = pd.DataFrame()
 
 for gtype, df in cm_lstm.groupby("ds_type"):
+    df = df.loc[
+        df.groupby("attack_gen").f2_score.idxmax()
+    ]  # marginalize over other params
     df.set_index("attack_gen", inplace=True)
     # tneg[gtype] = df.tn
     fpos[gtype] = df.fp
@@ -464,12 +469,30 @@ fneg.plot.bar(ax=ax)
 ax.set(ylabel="fn")
 ax.tick_params(axis="x", labelrotation=20)
 fig.tight_layout()
+fig.savefig(
+    pjoin(
+        "figures",
+        "supervised_results_unique",
+        f"{case}_lstm_fneg.pdf",
+    ),
+    dpi=600,
+)
+plt.close(fig)
 
 fig, ax = plt.subplots()  # fp comparison by node and dataset type
 fpos.plot.bar(ax=ax)
 ax.set(ylabel="fp")
 ax.tick_params(axis="x", labelrotation=20)
 fig.tight_layout()
+fig.savefig(
+    pjoin(
+        "figures",
+        "supervised_results_unique",
+        f"{case}_lstm_fpos.pdf",
+    ),
+    dpi=600,
+)
+plt.close(fig)
 
 
 # %%%% [7.2.3] RECALL & PRECISION
@@ -484,6 +507,15 @@ ax.set(ylim=(50, 100))
 ax.legend(loc="upper center", bbox_to_anchor=(0.5, 1.25), ncol=len(f2_scores.columns))
 ax.tick_params(axis="x", labelrotation=20)
 fig.tight_layout()
+fig.savefig(
+    pjoin(
+        "figures",
+        "supervised_results_unique",
+        f"{case}_lstm_recall.pdf",
+    ),
+    dpi=600,
+)
+plt.close(fig)
 
 fig, ax = plt.subplots()  #  precision (positive predictive) by node & type
 precision.plot.bar(ax=ax)
@@ -492,3 +524,12 @@ ax.set(ylim=(70, 100))
 ax.legend(loc="upper center", bbox_to_anchor=(0.5, 1.25), ncol=len(f2_scores.columns))
 ax.tick_params(axis="x", labelrotation=20)
 fig.tight_layout()
+fig.savefig(
+    pjoin(
+        "figures",
+        "supervised_results_unique",
+        f"{case}_lstm_precision.pdf",
+    ),
+    dpi=600,
+)
+plt.close(fig)

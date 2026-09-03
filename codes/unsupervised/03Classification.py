@@ -415,64 +415,65 @@ for net_key, model_key, ds_type, seq, contextual in cartesian:
         ).to_pickle(pjoin(dir_res, "confusion_test_set.p"))
 
 
-# %% STD ANALYSIS
-std_lstm_inj = pd.DataFrame(std_lstm["injection"]).T
-std_lstm_gen = pd.DataFrame(std_lstm["generation"]).T
+if "lstm" in models_dict and "injection" in types_dict and "generation" in types_dict:
+    # %% STD ANALYSIS
+    std_lstm_inj = pd.DataFrame(std_lstm["injection"]).T
+    std_lstm_gen = pd.DataFrame(std_lstm["generation"]).T
 
-std_lstm_inj["threshold/std"] = std_lstm_inj["threshold"] / std_lstm_inj["std"]
-std_lstm_gen["threshold/std"] = std_lstm_gen["threshold"] / std_lstm_gen["std"]
+    std_lstm_inj["threshold/std"] = std_lstm_inj["threshold"] / std_lstm_inj["std"]
+    std_lstm_gen["threshold/std"] = std_lstm_gen["threshold"] / std_lstm_gen["std"]
 
-gen_index = {gen: i for i, gen in enumerate(std_lstm_gen.index)}
-std_lstm_gen["gen_index"] = [gen_index[gen] for gen in std_lstm_gen.index]
-std_lstm_inj["gen_index"] = [gen_index[gen] for gen in std_lstm_inj.index]
+    gen_index = {gen: i for i, gen in enumerate(std_lstm_gen.index)}
+    std_lstm_gen["gen_index"] = [gen_index[gen] for gen in std_lstm_gen.index]
+    std_lstm_inj["gen_index"] = [gen_index[gen] for gen in std_lstm_inj.index]
 
+    fig, ax = plt.subplots(figsize=(8, 3.5))
+    # fig, ax = plt.subplots()
+    # ax.plot(std_lstm_inj.index, std_lstm_inj['threshold/std'])
+    ax.scatter(
+        std_lstm_inj["gen_index"], std_lstm_inj["threshold/std"], label="Injections"
+    )
+    ax.scatter(
+        std_lstm_gen["gen_index"], std_lstm_gen["threshold/std"], label="Productions"
+    )
+    mean_all = (
+        std_lstm_inj["threshold/std"].mean() + std_lstm_gen["threshold/std"].mean()
+    ) / 2
+    ax.axhline(mean_all, ls="--", c="k", label=f"Moyenne: {mean_all:.1f}")
+    ax.set(
+        ylabel="Seuil / écart type",
+        ylim=(0, 2 * mean_all),
+    )
+    ax.legend(ncol=3)
 
-fig, ax = plt.subplots(figsize=(8, 3.5))
-# fig, ax = plt.subplots()
-# ax.plot(std_lstm_inj.index, std_lstm_inj['threshold/std'])
-ax.scatter(std_lstm_inj["gen_index"], std_lstm_inj["threshold/std"], label="Injections")
-ax.scatter(
-    std_lstm_gen["gen_index"], std_lstm_gen["threshold/std"], label="Productions"
-)
-mean_all = (
-    std_lstm_inj["threshold/std"].mean() + std_lstm_gen["threshold/std"].mean()
-) / 2
-ax.axhline(mean_all, ls="--", c="k", label=f"Moyenne: {mean_all:.1f}")
-ax.set(
-    ylabel="Seuil / écart type",
-    ylim=(0, 2 * mean_all),
-)
-ax.legend(ncol=3)
+    gen_names = {i: get_gen_names(case)[gen] for gen, i in gen_index.items()}
+    ax.set_xticks(list(range(len(gen_index))))
+    ax.set_xticklabels([gen_names[i] for i in range(len(gen_index))])
+    plt.xticks(rotation=45, ha="right")
 
-gen_names = {i: get_gen_names(case)[gen] for gen, i in gen_index.items()}
-ax.set_xticks(list(range(len(gen_index))))
-ax.set_xticklabels([gen_names[i] for i in range(len(gen_index))])
-plt.xticks(rotation=45, ha="right")
+    # labels = [l.split('_')[0] for l in std_lstm_inj.index]
+    # labels = ax.set_xticklabels(labels)
+    # labels = ax.set_xticklabels(std_lstm_inj.index)
+    # for i, label in enumerate(labels):
+    #     label.set_y(label.get_position()[1] - (i % 2) * 0.075)
 
-# labels = [l.split('_')[0] for l in std_lstm_inj.index]
-# labels = ax.set_xticklabels(labels)
-# labels = ax.set_xticklabels(std_lstm_inj.index)
-# for i, label in enumerate(labels):
-#     label.set_y(label.get_position()[1] - (i % 2) * 0.075)
+    fig.tight_layout()
 
-fig.tight_layout()
+    figname = f"{case}_threshold_std.pdf"
+    plt.savefig(pjoin("figures", "unsupervised_classification", figname), dpi=600)
+    plt.close(fig)
 
-figname = f"{case}_threshold_std.pdf"
-plt.savefig(pjoin("figures", "unsupervised_classification", figname), dpi=600)
-plt.close(fig)
+if "lstm" in models_dict:
+    # %% LOW POWER ANALYSIS
+    low_power_lstm_val = pd.DataFrame(low_power_lstm["val"])
+    low_power_lstm_test = pd.DataFrame(low_power_lstm["test"])
 
+    # %% MAPE ANALYSIS
+    mape_lstm_val = pd.DataFrame(mape_lstm["val"])
+    mape_lstm_test = pd.DataFrame(mape_lstm["test"])
 
-# %% LOW POWER ANALYSIS
-low_power_lstm_val = pd.DataFrame(low_power_lstm["val"])
-low_power_lstm_test = pd.DataFrame(low_power_lstm["test"])
-
-
-# %% MAPE ANALYSIS
-mape_lstm_val = pd.DataFrame(mape_lstm["val"])
-mape_lstm_test = pd.DataFrame(mape_lstm["test"])
-
-mape_lstm_val = mape_lstm_val.reindex(sorted_nodes)
-mape_lstm_test = mape_lstm_test.reindex(sorted_nodes)
+    mape_lstm_val = mape_lstm_val.reindex(sorted_nodes)
+    mape_lstm_test = mape_lstm_test.reindex(sorted_nodes)
 
 
 # %% RUNNING TIME

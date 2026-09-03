@@ -183,7 +183,7 @@ for c, (net_key, model_key, ds_type, seq, contextual) in enumerate(cartesian, st
             estimator=model["estimator"](),
             param_grid=model["parameters"][net_key][param_key],
             cv=5,
-            scoring="sc",
+            scoring="r2",
             verbose=0,
             n_jobs=-1,
             refit=True,

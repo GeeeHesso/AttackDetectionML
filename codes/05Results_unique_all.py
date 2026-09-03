@@ -39,8 +39,7 @@ color_models = {
 # %% PATH MANAGER
 os.chdir("..")  # Working directory is repo main
 
-# nets_dict = ["CH", "DE", "ES"]  # List with all nets
-nets_dict = ["CH"]
+nets_dict = ["CH", "DE", "ES"]  # List with all nets
 
 models_dict = load_models()  # Dictionary with all supervised models
 models_dict["lstm"] = {}  # unsupervised from google colab

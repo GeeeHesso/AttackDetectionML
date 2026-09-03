@@ -44,7 +44,7 @@ contextual_lens = ["t", "hist"]  # W/O historical values for contextual variable
 # %%% TRAIN/VALIDATION SPLIT METHOD
 # "random": 80/20 random split of the non-test timesteps (original method)
 # "fixed_years": entire simulated years held out as validation set
-val_split_method = "fixed_years"
+val_split_method = "random"
 
 # Only used when val_split_method == "fixed_years"
 # Each entry is a (calendar year, series) pair, e.g. (2018, 3) is the third

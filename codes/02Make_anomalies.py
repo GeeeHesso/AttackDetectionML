@@ -45,7 +45,7 @@ os.makedirs(pjoin("figures", "make_anomalies"), exist_ok=True)
 # %%% TEST SET SPLIT METHOD
 # "random": 20% of timesteps drawn at random (original method)
 # "fixed_years": entire simulated years held out as test set
-test_split_method = "fixed_years"
+test_split_method = "random"
 
 # Only used when test_split_method == "fixed_years"
 # Each entry is a (calendar year, series) pair, e.g. (2018, 3) is the third

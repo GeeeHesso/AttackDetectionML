@@ -65,8 +65,6 @@ rated_power = gen_p.max().to_dict()
 
 
 for attacked_gen in attacked_gens:
-    # for attacked_gen in [923]:
-
     print("Attack on generator:", attacked_gen)
 
     # load models, threshold and scalers
@@ -79,7 +77,6 @@ for attacked_gen in attacked_gens:
     confusion = rpckl(pjoin(model_path, "confusion_validation_set.p"))
     threshold = confusion["threshold"].iat[0]
 
-    # data
     # LOAD DATASET
     X_all = gen_p.copy()
 
@@ -110,7 +107,6 @@ for attacked_gen in attacked_gens:
     y_scaled = estimator.predict(X_scaled).reshape(-1, 1)
     y_pred = scaler_y.inverse_transform(y_scaled).squeeze()
 
-    # y_attacked = np.where(y > y_max / 2, 0., y_max)
     y_attacked = rpckl(pjoin(ds_path, f"{attacked_gen}_p_attacked.p"))[
         selected_index
     ].to_list()

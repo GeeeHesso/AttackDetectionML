@@ -2,6 +2,7 @@
 
 from os.path import join as pjoin
 
+import numpy as np
 import pandas as pd
 from numpy import arange as arg
 from pandas import read_csv as rcsv
@@ -114,6 +115,27 @@ def load_data(country_code, n_year=20, replace_small_value=False):
     gen, gen_info = load_gen_data(country_code, n_year, replace_small_value)
 
     return load, gen, gen_info
+
+
+def add_noise(data, std, random_state=None):
+    """Add zero-mean Gaussian noise (standard deviation ``std``, in MW) to power data."""
+
+    rng = np.random.default_rng(random_state)
+    return data + rng.normal(loc=0.0, scale=std, size=data.shape)
+
+
+def noisy_model_key(model_key, noise_std):
+    """Results-directory key for a model trained on data with added Gaussian noise.
+
+    ``noise_std`` is the noise standard deviation in MW; ``None`` or 0 leaves
+    ``model_key`` unchanged, so noise-free and noisy runs land in different
+    result directories and are never mixed up in the comparison scripts (which
+    only look up the plain keys returned by ``load_models``).
+    """
+
+    if not noise_std:
+        return model_key
+    return f"{model_key}_{noise_std:g}MW_noise"
 
 
 def load_models():

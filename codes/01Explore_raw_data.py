@@ -9,6 +9,7 @@
 
 # %% PACKAGES
 
+import json
 import os
 import time
 from os.path import join as pjoin
@@ -107,6 +108,69 @@ ax.legend()
 fig.tight_layout()
 fig.savefig(pjoin("figures", "raw_data", "power_balance.pdf"), dpi=600)
 plt.close(fig)
+
+# %% AVERAGE EFFECTIVE IMPEDANCE
+with open(pjoin(raw_folder, "europe_network.json")) as f:
+    network = json.load(f)
+
+bus_all = network["bus"]
+gen_all = network["gen"]
+branch_active = [br for br in network["branch"].values() if br["br_status"] == 1]
+
+bus_ids = sorted(int(bus_id) for bus_id, info in bus_all.items() if info["status"] == 1)
+bus_index = {bus_id: i for i, bus_id in enumerate(bus_ids)}
+n_bus = len(bus_ids)
+
+# Weighted Laplacian of the whole European network, using line
+# susceptance as edge weight (DC power-flow approximation).
+weights = np.zeros((n_bus, n_bus))
+for br in branch_active:
+    # w = 1 / br["br_x"]
+    w = br["br_x"] / (br["br_x"] ** 2 + br["br_r"] ** 2)
+    f_idx, t_idx = bus_index[br["f_bus"]], bus_index[br["t_bus"]]
+    weights[f_idx, t_idx] += w
+    weights[t_idx, f_idx] += w
+laplacian = np.diag(weights.sum(axis=1)) - weights
+
+# Moore-Penrose pseudo-inverse of the Laplacian: the effective impedance
+# between any two buses i, j is L+_ii + L+_jj - 2*L+_ij.
+eigenvalues, eigenvectors = np.linalg.eigh(laplacian)
+inv_eigenvalues = np.where(eigenvalues > 1e-8, 1 / eigenvalues, 0)
+laplacian_pinv = (eigenvectors * inv_eigenvalues) @ eigenvectors.T
+
+
+def average_effective_impedance(indices):
+    """Average effective impedance over all pairs drawn from `indices`."""
+    sub = laplacian_pinv[np.ix_(indices, indices)]
+    k = len(indices)
+    total = k * np.trace(sub) - sub.sum()
+    return total / (k * (k - 1) / 2)
+
+
+print("AVERAGE EFFECTIVE IMPEDANCE")
+for country in ["CH", "DE", "ES"]:
+    country_bus_idx = [
+        bus_index[int(bus_id)]
+        for bus_id, info in bus_all.items()
+        if info["country"] == country and info["status"] == 1
+    ]
+    gen_buses = {
+        gen["gen_bus"]
+        for gen in gen_all.values()
+        if gen["country"] == country and gen["gen_status"] == 1
+    }
+    gen_bus_idx = [bus_index[bus_id] for bus_id in gen_buses]
+
+    avg_z_buses = average_effective_impedance(country_bus_idx)
+    avg_z_gens = average_effective_impedance(gen_bus_idx)
+
+    print(
+        1 * "\t",
+        f"{country}\tavg Z (buses) = {avg_z_buses:.4f}"
+        f"\tavg Z (generators) = {avg_z_gens:.4f}",
+    )
+print("\n")
+
 
 # %% CH, FR & DE
 description = {}
@@ -271,9 +335,7 @@ for countrys in all_list:
     ax.legend()
     fig.tight_layout()
     fig.savefig(
-        pjoin(
-            "figures", "raw_data", f"{countrys[0]}-{countrys[1]}_correlations.pdf"
-        ),
+        pjoin("figures", "raw_data", f"{countrys[0]}-{countrys[1]}_correlations.pdf"),
         dpi=600,
     )
     plt.close(fig)
@@ -342,9 +404,7 @@ for country in countries:
         ax.legend()
         fig.tight_layout()
         fig.savefig(
-            pjoin(
-                "figures", "raw_data", f"{country}_correlations_{gen_type}.pdf"
-            ),
+            pjoin("figures", "raw_data", f"{country}_correlations_{gen_type}.pdf"),
             dpi=600,
         )
         plt.close(fig)

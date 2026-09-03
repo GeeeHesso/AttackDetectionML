@@ -20,7 +20,7 @@ from sklearn.metrics import mean_absolute_percentage_error as mape
 os.chdir(Path(__file__).resolve().parent.parent)
 
 sys.path.append(os.getcwd())
-from functions import get_gen_names, get_p_nom, load_models
+from functions import add_noise, get_gen_names, get_p_nom, load_models, noisy_model_key
 
 # MATPLOTLIB PARAMETERS
 
@@ -46,10 +46,18 @@ make_figures = True
 nets_dict = [case]  # List with all nets
 types_dict = ["generation", "injection"]  # List with all dataset type
 
+# Standard deviation [MW] of the zero-mean Gaussian noise added to the
+# reported ("hacked") attack values below, to match a regression model
+# trained via codes/unsupervised/01GSCV.py with the same noise_std. Must be
+# None (or 0) unless the corresponding noisy regression results exist.
+noise_std = None
+# noise_std = 10
+
 models_dict = load_models()  # Dictionary with all regression models
 models_dict = {"mlpr": models_dict["mlpr"]}  # Dictionary with all regression models
 # models_dict = {}  # Dictionary with all regression models
-models_dict["lstm"] = {}  # From google colab
+if noise_std is None:
+    models_dict["lstm"] = {}  # From google colab, not covered by noise injection
 
 sequence_lens = [4, 24]  # 6 hours or 1 hour
 contextuals_lens = ["t", "hist"]  # W/O historical values for contectual variable
@@ -125,14 +133,16 @@ for net_key, model_key, ds_type, seq, contextual in cartesian:
     # LOOP FOR ATTACKED NODE
     # attacked_gens = attacked_gens[:1]  ## DEBUG
     # attacked_gens = [300]  ## DEBUG
-    for attacked_gen in attacked_gens:
+    for i, attacked_gen in enumerate(attacked_gens):
         # LOAD ATTACKED
         attacked_gen_p = rpckl(pjoin(dir_dataset, f"{attacked_gen}_p_attacked.p"))
+        if noise_std is not None:
+            attacked_gen_p = add_noise(attacked_gen_p, noise_std, random_state=44 + i)
 
         # LOAD PREDICTION
         dir_res = pjoin(
             path_result,
-            f"{model_key}",
+            noisy_model_key(model_key, noise_std),
             ds_type,
             f"{attacked_gen}",
             f"sequence_len-{seq}",
@@ -405,64 +415,65 @@ for net_key, model_key, ds_type, seq, contextual in cartesian:
         ).to_pickle(pjoin(dir_res, "confusion_test_set.p"))
 
 
-# %% STD ANALYSIS
-std_lstm_inj = pd.DataFrame(std_lstm["injection"]).T
-std_lstm_gen = pd.DataFrame(std_lstm["generation"]).T
+if "lstm" in models_dict and "injection" in types_dict and "generation" in types_dict:
+    # %% STD ANALYSIS
+    std_lstm_inj = pd.DataFrame(std_lstm["injection"]).T
+    std_lstm_gen = pd.DataFrame(std_lstm["generation"]).T
 
-std_lstm_inj["threshold/std"] = std_lstm_inj["threshold"] / std_lstm_inj["std"]
-std_lstm_gen["threshold/std"] = std_lstm_gen["threshold"] / std_lstm_gen["std"]
+    std_lstm_inj["threshold/std"] = std_lstm_inj["threshold"] / std_lstm_inj["std"]
+    std_lstm_gen["threshold/std"] = std_lstm_gen["threshold"] / std_lstm_gen["std"]
 
-gen_index = {gen: i for i, gen in enumerate(std_lstm_gen.index)}
-std_lstm_gen["gen_index"] = [gen_index[gen] for gen in std_lstm_gen.index]
-std_lstm_inj["gen_index"] = [gen_index[gen] for gen in std_lstm_inj.index]
+    gen_index = {gen: i for i, gen in enumerate(std_lstm_gen.index)}
+    std_lstm_gen["gen_index"] = [gen_index[gen] for gen in std_lstm_gen.index]
+    std_lstm_inj["gen_index"] = [gen_index[gen] for gen in std_lstm_inj.index]
 
+    fig, ax = plt.subplots(figsize=(8, 3.5))
+    # fig, ax = plt.subplots()
+    # ax.plot(std_lstm_inj.index, std_lstm_inj['threshold/std'])
+    ax.scatter(
+        std_lstm_inj["gen_index"], std_lstm_inj["threshold/std"], label="Injections"
+    )
+    ax.scatter(
+        std_lstm_gen["gen_index"], std_lstm_gen["threshold/std"], label="Productions"
+    )
+    mean_all = (
+        std_lstm_inj["threshold/std"].mean() + std_lstm_gen["threshold/std"].mean()
+    ) / 2
+    ax.axhline(mean_all, ls="--", c="k", label=f"Moyenne: {mean_all:.1f}")
+    ax.set(
+        ylabel="Seuil / écart type",
+        ylim=(0, 2 * mean_all),
+    )
+    ax.legend(ncol=3)
 
-fig, ax = plt.subplots(figsize=(8, 3.5))
-# fig, ax = plt.subplots()
-# ax.plot(std_lstm_inj.index, std_lstm_inj['threshold/std'])
-ax.scatter(std_lstm_inj["gen_index"], std_lstm_inj["threshold/std"], label="Injections")
-ax.scatter(
-    std_lstm_gen["gen_index"], std_lstm_gen["threshold/std"], label="Productions"
-)
-mean_all = (
-    std_lstm_inj["threshold/std"].mean() + std_lstm_gen["threshold/std"].mean()
-) / 2
-ax.axhline(mean_all, ls="--", c="k", label=f"Moyenne: {mean_all:.1f}")
-ax.set(
-    ylabel="Seuil / écart type",
-    ylim=(0, 2 * mean_all),
-)
-ax.legend(ncol=3)
+    gen_names = {i: get_gen_names(case)[gen] for gen, i in gen_index.items()}
+    ax.set_xticks(list(range(len(gen_index))))
+    ax.set_xticklabels([gen_names[i] for i in range(len(gen_index))])
+    plt.xticks(rotation=45, ha="right")
 
-gen_names = {i: get_gen_names(case)[gen] for gen, i in gen_index.items()}
-ax.set_xticks(list(range(len(gen_index))))
-ax.set_xticklabels([gen_names[i] for i in range(len(gen_index))])
-plt.xticks(rotation=45, ha="right")
+    # labels = [l.split('_')[0] for l in std_lstm_inj.index]
+    # labels = ax.set_xticklabels(labels)
+    # labels = ax.set_xticklabels(std_lstm_inj.index)
+    # for i, label in enumerate(labels):
+    #     label.set_y(label.get_position()[1] - (i % 2) * 0.075)
 
-# labels = [l.split('_')[0] for l in std_lstm_inj.index]
-# labels = ax.set_xticklabels(labels)
-# labels = ax.set_xticklabels(std_lstm_inj.index)
-# for i, label in enumerate(labels):
-#     label.set_y(label.get_position()[1] - (i % 2) * 0.075)
+    fig.tight_layout()
 
-fig.tight_layout()
+    figname = f"{case}_threshold_std.pdf"
+    plt.savefig(pjoin("figures", "unsupervised_classification", figname), dpi=600)
+    plt.close(fig)
 
-figname = f"{case}_threshold_std.pdf"
-plt.savefig(pjoin("figures", "unsupervised_classification", figname), dpi=600)
-plt.close(fig)
+if "lstm" in models_dict:
+    # %% LOW POWER ANALYSIS
+    low_power_lstm_val = pd.DataFrame(low_power_lstm["val"])
+    low_power_lstm_test = pd.DataFrame(low_power_lstm["test"])
 
+    # %% MAPE ANALYSIS
+    mape_lstm_val = pd.DataFrame(mape_lstm["val"])
+    mape_lstm_test = pd.DataFrame(mape_lstm["test"])
 
-# %% LOW POWER ANALYSIS
-low_power_lstm_val = pd.DataFrame(low_power_lstm["val"])
-low_power_lstm_test = pd.DataFrame(low_power_lstm["test"])
-
-
-# %% MAPE ANALYSIS
-mape_lstm_val = pd.DataFrame(mape_lstm["val"])
-mape_lstm_test = pd.DataFrame(mape_lstm["test"])
-
-mape_lstm_val = mape_lstm_val.reindex(sorted_nodes)
-mape_lstm_test = mape_lstm_test.reindex(sorted_nodes)
+    mape_lstm_val = mape_lstm_val.reindex(sorted_nodes)
+    mape_lstm_test = mape_lstm_test.reindex(sorted_nodes)
 
 
 # %% RUNNING TIME

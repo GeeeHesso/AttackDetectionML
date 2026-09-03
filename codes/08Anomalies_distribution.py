@@ -18,7 +18,7 @@ rcParams["figure.dpi"] = 100
 
 plt.style.use("seaborn-dark-palette")  # PC HEVS
 colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
-plt.rcParams["text.usetex"] = True
+plt.rcParams["text.usetex"] = False
 
 attacked_color = "#FF4A1C"
 regular_color = "#23967F"

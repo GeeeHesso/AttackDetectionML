@@ -54,11 +54,11 @@ learning = "supervised"
 model_keys = ["mlpc"]
 
 # Noise standard deviations [MW] to compare; 0 stands for the noise-free run.
-noise_stds = [0, 5, 10, 20, 50]
+noise_stds = [0, 10]
 
-ds_type = "injection"
+ds_type = "generation"
 seq = 4
-contextual = "hist"
+contextual = "t"
 
 
 # %% [2] LOAD RESULTS
@@ -120,6 +120,51 @@ if missing:
 f2_all["gen_name"] = f2_all["attack_gen"].map(get_gen_names(case))
 
 
+# %% [2b] LOAD RMSE (UNSUPERVISED REGRESSION ONLY)
+rmse_all = pd.DataFrame()
+if learning == "unsupervised":
+    missing_rmse = []
+    for model_key, noise_std in product(model_keys, noise_stds):
+        save_key = noisy_model_key(model_key, noise_std)
+
+        for attack_gen in attacked_gens:
+            res_path = pjoin(
+                res_dir,
+                save_key,
+                ds_type,
+                f"{attack_gen}",
+                f"sequence_len-{seq}",
+                f"contextual_{contextual}",
+            )
+
+            f_path = pjoin(res_path, "gscv_regression_metrics.p")
+            if not os.path.isfile(f_path):
+                missing_rmse.append((model_key, noise_std, attack_gen))
+                continue
+
+            metrics_df = pd.read_pickle(f_path)
+
+            row = pd.DataFrame(
+                {
+                    "model": model_key,
+                    "noise_std": noise_std,
+                    "attack_gen": attack_gen,
+                    "rmse": metrics_df.loc["test set", "rmse"],
+                },
+                index=[0],
+            )
+            rmse_all = pd.concat([rmse_all, row], ignore_index=True)
+
+    if missing_rmse:
+        print(f"Missing {len(missing_rmse)} RMSE result(s), e.g.:")
+        for model_key, noise_std, attack_gen in missing_rmse[:10]:
+            print(
+                f"  - model={model_key}, noise_std={noise_std}MW, attack_gen={attack_gen}"
+            )
+
+    rmse_all["gen_name"] = rmse_all["attack_gen"].map(get_gen_names(case))
+
+
 # %% [3] F2 SCORE VS NOISE LEVEL - BOX PLOT PER MODEL
 for model_key, df_model in f2_all.groupby("model"):
     f2_by_noise = pd.DataFrame(
@@ -132,7 +177,7 @@ for model_key, df_model in f2_all.groupby("model"):
 
     fig, ax = plt.subplots(figsize=(8, 3))
     f2_by_noise.plot.box(ax=ax)
-    ax.set(xlabel="Noise std [MW]", ylabel="F₂", ylim=(0, 1))
+    ax.set(xlabel="Noise std [MW]", ylabel="F₂", ylim=(0.75, 1))
     fig.tight_layout()
     fig.savefig(
         pjoin(
@@ -153,7 +198,7 @@ for i, (model_key, df_model) in enumerate(f2_all.groupby("model")):
         median_f2.index, median_f2.values, marker="o", color=colors[i], label=model_key
     )
 
-ax.set(xlabel="Noise std [MW]", ylabel="Median F₂", ylim=(0, 1))
+ax.set(xlabel="Noise std [MW]", ylabel="Median F₂", ylim=(0.75, 1))
 ax.legend()
 fig.tight_layout()
 fig.savefig(
@@ -161,3 +206,53 @@ fig.savefig(
     dpi=600,
 )
 plt.close(fig)
+
+
+# %% [5] RMSE VS NOISE LEVEL (UNSUPERVISED REGRESSION ONLY)
+if learning == "unsupervised" and not rmse_all.empty:
+    # BOX PLOT PER MODEL
+    for model_key, df_model in rmse_all.groupby("model"):
+        rmse_by_noise = pd.DataFrame(
+            {
+                noise_std: df_noise.set_index("gen_name")["rmse"]
+                for noise_std, df_noise in df_model.groupby("noise_std")
+            }
+        )
+        rmse_by_noise = rmse_by_noise[sorted(rmse_by_noise.columns)]
+
+        fig, ax = plt.subplots(figsize=(8, 3))
+        rmse_by_noise.plot.box(ax=ax)
+        ax.set(xlabel="Noise std [MW]", ylabel="RMSE [MW]")
+        fig.tight_layout()
+        fig.savefig(
+            pjoin(
+                "figures",
+                "noise_sensitivity",
+                f"{case}_{learning}_{model_key}_rmse_vs_noise_box.pdf",
+            ),
+            dpi=600,
+        )
+        plt.close(fig)
+
+    # MEDIAN LINE, ALL MODELS
+    fig, ax = plt.subplots(figsize=(6, 4))
+    for i, (model_key, df_model) in enumerate(rmse_all.groupby("model")):
+        median_rmse = df_model.groupby("noise_std")["rmse"].median()
+        ax.plot(
+            median_rmse.index,
+            median_rmse.values,
+            marker="o",
+            color=colors[i],
+            label=model_key,
+        )
+
+    ax.set(xlabel="Noise std [MW]", ylabel="Median RMSE [MW]")
+    ax.legend()
+    fig.tight_layout()
+    fig.savefig(
+        pjoin(
+            "figures", "noise_sensitivity", f"{case}_{learning}_rmse_vs_noise_median.pdf"
+        ),
+        dpi=600,
+    )
+    plt.close(fig)

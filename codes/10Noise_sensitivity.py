@@ -222,7 +222,7 @@ if learning == "unsupervised" and not rmse_all.empty:
 
         fig, ax = plt.subplots(figsize=(8, 3))
         rmse_by_noise.plot.box(ax=ax)
-        ax.set(xlabel="Noise std [MW]", ylabel="RMSE [MW]")
+        ax.set(ylim=0, xlabel="Noise std [MW]", ylabel="RMSE [MW]")
         fig.tight_layout()
         fig.savefig(
             pjoin(
@@ -246,12 +246,14 @@ if learning == "unsupervised" and not rmse_all.empty:
             label=model_key,
         )
 
-    ax.set(xlabel="Noise std [MW]", ylabel="Median RMSE [MW]")
+    ax.set(ylim=0, xlabel="Noise std [MW]", ylabel="Median RMSE [MW]")
     ax.legend()
     fig.tight_layout()
     fig.savefig(
         pjoin(
-            "figures", "noise_sensitivity", f"{case}_{learning}_rmse_vs_noise_median.pdf"
+            "figures",
+            "noise_sensitivity",
+            f"{case}_{learning}_rmse_vs_noise_median.pdf",
         ),
         dpi=600,
     )

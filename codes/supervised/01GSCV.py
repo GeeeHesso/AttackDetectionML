@@ -48,8 +48,8 @@ contextual_lens = ["t", "hist"]  # W/O historical values for contextual variable
 # Standard deviation [MW] of the zero-mean Gaussian noise added to load/gen
 # data before training and testing, to probe model sensitivity to noisy
 # input data. Set to None to disable and train on the original data.
-# noise_std = None
-noise_std = 10
+noise_std = None
+# noise_std = 10
 
 ftwo_scorer = make_scorer(fbeta_score, beta=2)  # Error that weights recall
 # Higher than precision

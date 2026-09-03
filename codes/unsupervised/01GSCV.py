@@ -22,7 +22,7 @@ from sklearn.preprocessing import MinMaxScaler
 os.chdir(Path(__file__).resolve().parent.parent)
 
 sys.path.append(os.getcwd())
-from functions import load_data, load_models
+from functions import add_noise, load_data, load_models, noisy_model_key
 
 start_time = time()  # For total running time
 
@@ -41,17 +41,24 @@ models_dict = {"mlpr": models_dict["mlpr"]}  # Dictionary with all regression mo
 sequence_lens = [4, 24]  # 6 hours or 1 hour
 contextual_lens = ["t", "hist"]  # W/O historical values for contextual variable
 
+# Standard deviation [MW] of the zero-mean Gaussian noise added to load/gen
+# data before training and testing, to probe model sensitivity to noisy
+# input data. Set to None to disable and train on the original data.
+# noise_std = None
+noise_std = 10
+
 
 # %% DEBUG PARAMETERS
-# keys = ["mlpr"]  # Select specific models
-# models_dict = {key: models_dict[key] for key in keys}
+keys = ["mlpr"]  # Select specific models
+models_dict = {key: models_dict[key] for key in keys}
 
 types_dict = ["generation"]  # Select specific ds_type
 # types_dict = ['injection'] # Select specific ds_type
 
 # sequence_lens = [1, 2, 3, 8, 48, 96, 168]
+sequence_lens = [4]
 
-# contextual_lens = ["t"]  # Select specific sequence length
+contextual_lens = ["t"]  # Select specific sequence length
 # contextual_lens = ['hist'] # Select specific sequence length
 
 
@@ -79,6 +86,10 @@ for c, (net_key, model_key, ds_type, seq, contextual) in enumerate(cartesian, st
         # attacked_index = rpckl(pjoin(dir_dataset, 'attacked_timesteps.p'))[0].to_list()
 
         load_p, gen_p, _ = load_data(case)
+
+        if noise_std is not None:
+            load_p = add_noise(load_p, noise_std, random_state=42)
+            gen_p = add_noise(gen_p, noise_std, random_state=43)
 
         # test_index is the index for testing the classification
         classification_test_index = rpckl(pjoin(dir_dataset, "test_timesteps.p"))[
@@ -159,6 +170,7 @@ for c, (net_key, model_key, ds_type, seq, contextual) in enumerate(cartesian, st
         print(f"- type          : {ds_type}")
         print(f"- sequence      : {seq}")
         print(f"- contextual    : {contextual}")
+        print(f"- noise_std     : {noise_std} MW")
         print(f"- X_train shape : {X_train.shape}")
         print(f"- preparation   : {time() - fit_time:.0f}s")
         fit_time = time()
@@ -171,7 +183,7 @@ for c, (net_key, model_key, ds_type, seq, contextual) in enumerate(cartesian, st
             estimator=model["estimator"](),
             param_grid=model["parameters"][net_key][param_key],
             cv=5,
-            scoring="sc",
+            scoring="r2",
             verbose=0,
             n_jobs=-1,
             refit=True,
@@ -218,7 +230,7 @@ for c, (net_key, model_key, ds_type, seq, contextual) in enumerate(cartesian, st
         # SAVE MODEL & HYPERPARAMS
         dir_result = pjoin(
             path_result,
-            f"{model_key}",
+            noisy_model_key(model_key, noise_std),
             ds_type,
             f"{attack_gen}",
             f"sequence_len-{seq}",

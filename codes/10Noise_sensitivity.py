@@ -113,7 +113,9 @@ for model_key, noise_std in product(model_keys, noise_stds):
 if missing:
     print(f"Missing {len(missing)} result(s), e.g.:")
     for model_key, noise_std, attack_gen in missing[:10]:
-        print(f"  - model={model_key}, noise_std={noise_std}MW, attack_gen={attack_gen}")
+        print(
+            f"  - model={model_key}, noise_std={noise_std}MW, attack_gen={attack_gen}"
+        )
 
 f2_all["gen_name"] = f2_all["attack_gen"].map(get_gen_names(case))
 
@@ -147,7 +149,9 @@ for model_key, df_model in f2_all.groupby("model"):
 fig, ax = plt.subplots(figsize=(6, 4))
 for i, (model_key, df_model) in enumerate(f2_all.groupby("model")):
     median_f2 = df_model.groupby("noise_std")["f2_score"].median()
-    ax.plot(median_f2.index, median_f2.values, marker="o", color=colors[i], label=model_key)
+    ax.plot(
+        median_f2.index, median_f2.values, marker="o", color=colors[i], label=model_key
+    )
 
 ax.set(xlabel="Noise std [MW]", ylabel="Median F₂", ylim=(0, 1))
 ax.legend()

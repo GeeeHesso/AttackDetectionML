@@ -44,20 +44,21 @@ contextual_lens = ["t", "hist"]  # W/O historical values for contextual variable
 # Standard deviation [MW] of the zero-mean Gaussian noise added to load/gen
 # data before training and testing, to probe model sensitivity to noisy
 # input data. Set to None to disable and train on the original data.
-noise_std = None
-# noise_std = 10
+# noise_std = None
+noise_std = 10
 
 
 # %% DEBUG PARAMETERS
-# keys = ["mlpr"]  # Select specific models
-# models_dict = {key: models_dict[key] for key in keys}
+keys = ["mlpr"]  # Select specific models
+models_dict = {key: models_dict[key] for key in keys}
 
-# types_dict = ["generation"]  # Select specific ds_type
+types_dict = ["generation"]  # Select specific ds_type
 # types_dict = ['injection'] # Select specific ds_type
 
 # sequence_lens = [1, 2, 3, 8, 48, 96, 168]
+sequence_lens = [4]
 
-# contextual_lens = ["t"]  # Select specific sequence length
+contextual_lens = ["t"]  # Select specific sequence length
 # contextual_lens = ['hist'] # Select specific sequence length
 
 

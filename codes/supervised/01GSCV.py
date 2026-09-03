@@ -48,8 +48,8 @@ contextual_lens = ["t", "hist"]  # W/O historical values for contextual variable
 # Standard deviation [MW] of the zero-mean Gaussian noise added to load/gen
 # data before training and testing, to probe model sensitivity to noisy
 # input data. Set to None to disable and train on the original data.
-noise_std = None
-# noise_std = 10
+# noise_std = None
+noise_std = 10
 
 ftwo_scorer = make_scorer(fbeta_score, beta=2)  # Error that weights recall
 # Higher than precision
@@ -59,13 +59,13 @@ ftwo_scorer = make_scorer(fbeta_score, beta=2)  # Error that weights recall
 # keys = ["nb", "rf"]  # few minutes
 # keys = ['svc', 'knn'] # few hours
 # keys = ['gbc', 'mlpc'] # many hours
-# keys = ['mlpc']
-# models_dict = {key: models_dict[key] for key in keys}
+keys = ["mlpc"]
+models_dict = {key: models_dict[key] for key in keys}
 # models_dict.pop('svc')
 
-# types_dict = ['injection']
-# sequence_lens = [0]
-# contextual_lens = ['t']
+types_dict = ["generation"]
+sequence_lens = [4]
+contextual_lens = ["t"]
 
 # %% [3] NET/MODEL/DATASET LOOP
 cartesian = product(

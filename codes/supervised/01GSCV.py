@@ -23,7 +23,7 @@ os.chdir(Path(__file__).resolve().parent.parent)
 
 sys.path.append(os.getcwd())
 
-from functions import load_data, load_models
+from functions import add_noise, load_data, load_models, noisy_model_key
 
 warnings.filterwarnings(action="ignore", category=FutureWarning)
 
@@ -45,16 +45,21 @@ types_dict = ["generation", "injection"]  # List with all dataset type
 sequence_lens = [0, 4, 24]  # 4 hours or 24 hours
 contextual_lens = ["t", "hist"]  # W/O historical values for contextual variable
 
+# Standard deviation [MW] of the zero-mean Gaussian noise added to load/gen
+# data before training and testing, to probe model sensitivity to noisy
+# input data. Set to None to disable and train on the original data.
+noise_std = None
+# noise_std = 10
 
 ftwo_scorer = make_scorer(fbeta_score, beta=2)  # Error that weights recall
 # Higher than precision
 
 
 # %%  [2]  DEBUG PARAMETERS
-keys = ["nb", "rf"]  # few minutes
+# keys = ["nb", "rf"]  # few minutes
 # keys = ['svc', 'knn'] # few hours
 # keys = ['gbc', 'mlpc'] # many hours
-# keys = ['gbc']
+# keys = ['mlpc']
 # models_dict = {key: models_dict[key] for key in keys}
 # models_dict.pop('svc')
 
@@ -88,6 +93,10 @@ for c, (net_key, model_key, ds_type, seq, contextual) in enumerate(cartesian, st
 
         load_p, gen_p, _ = load_data(net_key)
 
+        if noise_std is not None:
+            load_p = add_noise(load_p, noise_std, random_state=42)
+            gen_p = add_noise(gen_p, noise_std, random_state=43)
+
         test_index = rpckl(pjoin(ds_path, "test_timesteps.p"))[0].to_list()
         train_index = [ts for ts in gen_p.index if ts not in test_index]
 
@@ -104,6 +113,8 @@ for c, (net_key, model_key, ds_type, seq, contextual) in enumerate(cartesian, st
 
         # add anomalies
         attacked_gen_p = rpckl(pjoin(ds_path, f"{attack_gen}_p_attacked.p"))
+        if noise_std is not None:
+            attacked_gen_p = add_noise(attacked_gen_p, noise_std, random_state=44 + i)
         X_attacked = X_all.copy()
         X_attacked[attack_gen] = attacked_gen_p
         X_attacked.columns = X_attacked.columns.astype(str) + "_t"
@@ -171,6 +182,7 @@ for c, (net_key, model_key, ds_type, seq, contextual) in enumerate(cartesian, st
             print(f"- type {ds_type}")
             print(f"- sequence {seq}")
             print(f"- contextual {contextual}")
+            print(f"- noise_std {noise_std} MW")
             print(f"- X shape {X_train.shape}")
             print(f"- preparation {time() - t_prep:.0f}s")
             t_train = time()
@@ -217,7 +229,7 @@ for c, (net_key, model_key, ds_type, seq, contextual) in enumerate(cartesian, st
             # [3.6] SAVE BEST MODEL
             dir_path = pjoin(
                 res_dir,
-                f"{model_key}",
+                noisy_model_key(model_key, noise_std),
                 ds_type,
                 f"{attack_gen}",
                 f"sequence_len-{seq}",

@@ -20,7 +20,7 @@ from sklearn.metrics import mean_absolute_percentage_error as mape
 os.chdir(Path(__file__).resolve().parent.parent)
 
 sys.path.append(os.getcwd())
-from functions import get_gen_names, get_p_nom, load_models
+from functions import add_noise, get_gen_names, get_p_nom, load_models, noisy_model_key
 
 # MATPLOTLIB PARAMETERS
 
@@ -46,10 +46,18 @@ make_figures = True
 nets_dict = [case]  # List with all nets
 types_dict = ["generation", "injection"]  # List with all dataset type
 
+# Standard deviation [MW] of the zero-mean Gaussian noise added to the
+# reported ("hacked") attack values below, to match a regression model
+# trained via codes/unsupervised/01GSCV.py with the same noise_std. Must be
+# None (or 0) unless the corresponding noisy regression results exist.
+noise_std = None
+# noise_std = 10
+
 models_dict = load_models()  # Dictionary with all regression models
 models_dict = {"mlpr": models_dict["mlpr"]}  # Dictionary with all regression models
 # models_dict = {}  # Dictionary with all regression models
-models_dict["lstm"] = {}  # From google colab
+if noise_std is None:
+    models_dict["lstm"] = {}  # From google colab, not covered by noise injection
 
 sequence_lens = [4, 24]  # 6 hours or 1 hour
 contextuals_lens = ["t", "hist"]  # W/O historical values for contectual variable
@@ -125,14 +133,16 @@ for net_key, model_key, ds_type, seq, contextual in cartesian:
     # LOOP FOR ATTACKED NODE
     # attacked_gens = attacked_gens[:1]  ## DEBUG
     # attacked_gens = [300]  ## DEBUG
-    for attacked_gen in attacked_gens:
+    for i, attacked_gen in enumerate(attacked_gens):
         # LOAD ATTACKED
         attacked_gen_p = rpckl(pjoin(dir_dataset, f"{attacked_gen}_p_attacked.p"))
+        if noise_std is not None:
+            attacked_gen_p = add_noise(attacked_gen_p, noise_std, random_state=44 + i)
 
         # LOAD PREDICTION
         dir_res = pjoin(
             path_result,
-            f"{model_key}",
+            noisy_model_key(model_key, noise_std),
             ds_type,
             f"{attacked_gen}",
             f"sequence_len-{seq}",

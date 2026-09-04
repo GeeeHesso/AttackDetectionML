@@ -63,7 +63,10 @@ nohup python -u codes/supervised/01GSCV.py > supervised.out &
 
 ### LSTM
 
-...
+LSTM models have been run separately on Google Colab using Jupyter notebooks:
+
+1. [`LSTM_classifier.ipynb`](./codes/lstm/LSTM_classifier.ipynb)
+2. [`LSTM_regression.ipynb`](./codes/lstm/LSTM_regression.ipynb)
 
 ### Analysis of the results
 

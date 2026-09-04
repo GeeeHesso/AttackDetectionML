@@ -264,6 +264,11 @@ f2_scores_5best = f2_scores[best_models]
 for net, names in gen_names_by_country.items():
     net_f2_scores = f2_scores_5best.loc[names.values()]
 
+    net_f2_scores_summary = net_f2_scores.agg(
+        ["count", "mean", "median", "std", "min", "max"]
+    ).T
+    net_f2_scores_summary.to_csv(pjoin("results", f"{net}_f2_scores.csv"))
+
     fig, ax = plt.subplots(figsize=(8, 3))
     net_f2_scores.plot.bar(ax=ax, color=colors)
     ax.set(ylabel="F\u2082", ylim=(0.85, 1))
@@ -286,7 +291,6 @@ for net, names in gen_names_by_country.items():
 classifier_models = ["LSTMC", "GBC", "MLPC", "RFC", "SVC", "NBC", "KNNC"]
 
 f2_scores_classifiers = f2_scores[classifier_models]
-f2_scores_classifiers.to_csv(pjoin("results", "f2_scores_classifiers.csv"), index=False)
 
 for net, names in gen_names_by_country.items():
     net_f2_scores = f2_scores_classifiers.loc[names.values()]

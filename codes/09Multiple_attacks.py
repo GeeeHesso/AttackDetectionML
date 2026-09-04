@@ -167,6 +167,23 @@ print(
 
 # %% F2 SCORE
 
+f2_summary_rows = []
+for n_attacks, f2_list in f2.items():
+    f2_series = pd.Series(f2_list)
+    f2_summary_rows.append(
+        {
+            "attacks": n_attacks,
+            "count": f2_series.size,
+            "mean": f2_series.mean(),
+            "median": f2_series.median(),
+            "std": f2_series.std(),
+            "min": f2_series.min(),
+            "max": f2_series.max(),
+        }
+    )
+f2_summary = pd.DataFrame(f2_summary_rows)
+f2_summary.to_csv(pjoin("results", f"{case}_multiple_attacks_f2.csv"), index=False)
+
 fig = plt.figure(figsize=(6, 4))
 plt.violinplot(
     [f2[i] for i in range(max_concurring_attacks + 1)], vert=False, showmeans=True

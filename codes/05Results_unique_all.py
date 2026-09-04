@@ -286,6 +286,7 @@ for net, names in gen_names_by_country.items():
 classifier_models = ["LSTMC", "GBC", "MLPC", "RFC", "SVC", "NBC", "KNNC"]
 
 f2_scores_classifiers = f2_scores[classifier_models]
+f2_scores_classifiers.to_csv(pjoin("results", "f2_scores_classifiers.csv"), index=False)
 
 for net, names in gen_names_by_country.items():
     net_f2_scores = f2_scores_classifiers.loc[names.values()]

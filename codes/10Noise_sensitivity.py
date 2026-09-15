@@ -54,7 +54,7 @@ learning = "supervised"
 model_keys = ["mlpc"]
 
 # Noise standard deviations [MW] to compare; 0 stands for the noise-free run.
-noise_stds = [0, 10]
+noise_stds = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
 
 ds_type = "generation"
 seq = 4
@@ -177,7 +177,7 @@ for model_key, df_model in f2_all.groupby("model"):
 
     fig, ax = plt.subplots(figsize=(8, 3))
     f2_by_noise.plot.box(ax=ax)
-    ax.set(xlabel="Noise amplitude [MW]", ylabel="F₂", ylim=(0.75, 1))
+    ax.set(xlabel="Noise amplitude [MW]", ylabel="F₂", ylim=(0.3, 1))
     fig.tight_layout()
     fig.savefig(
         pjoin(
@@ -198,7 +198,7 @@ for i, (model_key, df_model) in enumerate(f2_all.groupby("model")):
         median_f2.index, median_f2.values, marker="o", color=colors[i], label=model_key
     )
 
-ax.set(xlabel="Noise amplitude [MW]", ylabel="Median F₂", ylim=(0.75, 1))
+ax.set(xlabel="Noise amplitude [MW]", ylabel="Median F₂", ylim=(0.3, 1))
 ax.legend()
 fig.tight_layout()
 fig.savefig(

@@ -24,15 +24,15 @@ rcParams["figure.dpi"] = 400
 plt.style.use("seaborn-dark-palette")
 
 color_models = {
-    "LSTMR": "#001C7F",
-    "MLPR": "#017517",
-    "MLPC": "#8C0900",
-    "GBC": "#7600A1",
-    "RFC": "#B8860B",
-    "LSTMC": "#006374",
-    "SVC": "#FF6347",
+    "LSTMR": "#1f77b4",  # tab:blue
+    "GBC": "#2ca02c",  # tab:green
+    "MLPC": "#d62728",  # tab:red
+    "LSTMC": "#9467bd",  # tab:purple
+    "RFC": "#17becf",  # tab:cyan
+    "MLPR": "#ff7f0e",  # tab:orange
+    "SVC": "#8c564b",  # tab:brown
     "KNNC": "#000000",
-    "NBC": "#5A6650",
+    "NBC": "#bcbd22",  # tab:olive
 }
 
 
@@ -375,9 +375,10 @@ bp_y = ax_boxy.boxplot(
     patch_artist=True,
 )
 # value axis (precision) is horizontal, aligned with ax's x-axis
+# positions are reversed so the top-to-bottom order matches the legend
 bp_x = ax_boxx.boxplot(
     [best_results.loc[best_results.model == m, "precision"] for m in plot_models],
-    positions=positions,
+    positions=list(reversed(positions)),
     vert=False,
     widths=0.6,
     patch_artist=True,

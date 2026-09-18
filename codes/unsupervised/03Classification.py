@@ -20,7 +20,15 @@ from sklearn.metrics import mean_absolute_percentage_error as mape
 os.chdir(Path(__file__).resolve().parent.parent)
 
 sys.path.append(os.getcwd())
-from functions import add_noise, get_gen_names, get_p_nom, load_models, noisy_model_key
+from functions import (
+    add_noise,
+    get_gen_names,
+    get_p_nom,
+    load_models,
+    noisy_model_key,
+    split_model_key,
+    threshold_model_key,
+)
 
 # MATPLOTLIB PARAMETERS
 
@@ -50,6 +58,11 @@ make_figures = True
 optimize_threshold = True
 # optimize_threshold = False
 
+# Must match the val_split_method used to produce the regression results
+# being read here (see codes/unsupervised/01GSCV.py).
+val_split_method = "random"
+# val_split_method = "chronological"
+
 nets_dict = [case]  # List with all nets
 types_dict = ["generation", "injection"]  # List with all dataset type
 
@@ -63,8 +76,9 @@ noise_std = None
 models_dict = load_models()  # Dictionary with all regression models
 models_dict = {"mlpr": models_dict["mlpr"]}  # Dictionary with all regression models
 # models_dict = {}  # Dictionary with all regression models
-if noise_std is None:
-    models_dict["lstm"] = {}  # From google colab, not covered by noise injection
+if noise_std is None and val_split_method == "random":
+    # From google colab, not covered by noise injection or split-method comparison
+    models_dict["lstm"] = {}
 
 sequence_lens = [4, 24]  # 6 hours or 1 hour
 contextuals_lens = ["t", "hist"]  # W/O historical values for contectual variable
@@ -133,8 +147,13 @@ for net_key, model_key, ds_type, seq, contextual in cartesian:
             0
         ].to_list()
         # regression_index = [ts for ts in gen_p.index if ts not in classification_test_index]
+        val_timesteps_suffix = (
+            "" if val_split_method == "random" else f"_{val_split_method}"
+        )
         regression_validation_index = rpckl(
-            pjoin(dir_dataset, "regression_validation_timesteps.p")
+            pjoin(
+                dir_dataset, f"regression_validation_timesteps{val_timesteps_suffix}.p"
+            )
         ).to_list()
 
     # LOOP FOR ATTACKED NODE
@@ -147,7 +166,9 @@ for net_key, model_key, ds_type, seq, contextual in cartesian:
             attacked_gen_p = add_noise(attacked_gen_p, noise_std, random_state=44 + i)
 
         # LOAD PREDICTION
-        model_key_in = noisy_model_key(model_key, noise_std)
+        model_key_in = split_model_key(
+            noisy_model_key(model_key, noise_std), val_split_method
+        )
         dir_res = pjoin(
             path_result,
             model_key_in,
@@ -163,7 +184,7 @@ for net_key, model_key, ds_type, seq, contextual in cartesian:
         # Classification outputs (confusion matrices, mistakes, ...) are
         # written to a separate directory when the threshold is fixed rather
         # than optimized, so the two never overwrite or get mixed up.
-        model_key_out = model_key_in if optimize_threshold else model_key_in + "_fixed_threshold"
+        model_key_out = threshold_model_key(model_key_in, optimize_threshold)
         dir_res_out = pjoin(
             path_result,
             model_key_out,

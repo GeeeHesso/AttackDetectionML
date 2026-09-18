@@ -27,6 +27,7 @@ from functions import (
     load_data,
     load_models,
     noisy_model_key,
+    split_model_key,
     years_timesteps,
 )
 
@@ -49,10 +50,10 @@ contextual_lens = ["t", "hist"]  # W/O historical values for contextual variable
 
 # %%% TRAIN/VALIDATION SPLIT METHOD
 # "random": 80/20 random split of the non-test timesteps (original method)
-# "fixed_years": entire simulated years held out as validation set
+# "chronological": entire simulated years held out as validation set
 val_split_method = "random"
 
-# Only used when val_split_method == "fixed_years"
+# Only used when val_split_method == "chronological"
 # Each entry is a (calendar year, series) pair, e.g. (2018, 3) is the third
 # simulated replica of 2018 (raw_data/gens_2018_3.csv).
 val_years = [(2018, 3), (2019, 3), (2020, 3)]
@@ -115,7 +116,7 @@ for c, (net_key, model_key, ds_type, seq, contextual) in enumerate(cartesian, st
             ts for ts in gen_p.index if ts not in classification_test_index
         ]
 
-        if val_split_method == "fixed_years":
+        if val_split_method == "chronological":
             regression_val_index = [
                 ts for ts in years_timesteps(val_years) if ts in regression_index
             ]
@@ -164,23 +165,38 @@ for c, (net_key, model_key, ds_type, seq, contextual) in enumerate(cartesian, st
             X_train, X_val, y_train, y_val = train_test_split(
                 X_train_val, y_train_val, test_size=0.2, random_state=42
             )
-        else:  # "fixed_years"
+        else:  # "chronological"
             X_train = X.iloc[regression_train_index, :]
             y_train = y.iloc[regression_train_index, :]
             X_val = X.iloc[regression_val_index, :]
             y_val = y.iloc[regression_val_index, :]
 
         ## SAVE INDEX FOR GOOGLE COLAB
+        # Shared per (net, val_split_method), same for every model/attacked_gen,
+        # so it is tagged by val_split_method only (not by model_key/noise_std).
+        # "random" keeps the original plain filename for backward compatibility.
+        val_timesteps_suffix = (
+            "" if val_split_method == "random" else f"_{val_split_method}"
+        )
+
         reg_val_idx = y_val.reset_index()["index"].sort_values()
-        reg_val_idx.to_pickle(pjoin(dir_dataset, "regression_validation_timesteps.p"))
+        reg_val_idx.to_pickle(
+            pjoin(
+                dir_dataset, f"regression_validation_timesteps{val_timesteps_suffix}.p"
+            )
+        )
         reg_val_idx = rpckl(
-            pjoin(dir_dataset, "regression_validation_timesteps.p")
+            pjoin(
+                dir_dataset, f"regression_validation_timesteps{val_timesteps_suffix}.p"
+            )
         ).to_list()
 
         reg_train_idx = y_train.reset_index()["index"].sort_values()
-        reg_train_idx.to_pickle(pjoin(dir_dataset, "regression_train_timesteps.p"))
+        reg_train_idx.to_pickle(
+            pjoin(dir_dataset, f"regression_train_timesteps{val_timesteps_suffix}.p")
+        )
         reg_train_idx = rpckl(
-            pjoin(dir_dataset, "regression_train_timesteps.p")
+            pjoin(dir_dataset, f"regression_train_timesteps{val_timesteps_suffix}.p")
         ).to_list()
 
         # SCALER
@@ -262,7 +278,7 @@ for c, (net_key, model_key, ds_type, seq, contextual) in enumerate(cartesian, st
         # SAVE MODEL & HYPERPARAMS
         dir_result = pjoin(
             path_result,
-            noisy_model_key(model_key, noise_std),
+            split_model_key(noisy_model_key(model_key, noise_std), val_split_method),
             ds_type,
             f"{attack_gen}",
             f"sequence_len-{seq}",

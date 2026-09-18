@@ -138,6 +138,41 @@ def noisy_model_key(model_key, noise_std):
     return f"{model_key}_{noise_std:g}MW_noise"
 
 
+def split_model_key(model_key, val_split_method):
+    """Results-directory key for a regression model, tagged by how its
+    train/validation split was drawn (see ``val_split_method`` in
+    codes/unsupervised/01GSCV.py and codes/unsupervised/03Classification.py).
+
+    "random" leaves ``model_key`` unchanged (matches all pre-existing
+    results); "chronological" gets a distinct suffix so the two split methods'
+    results never overwrite or get mixed up, and can be compared side by side
+    in codes/unsupervised/05Threshold_comparison.py.
+    """
+
+    if val_split_method == "random":
+        return model_key
+    if val_split_method == "chronological":
+        return f"{model_key}_chronological_val"
+    raise ValueError(f"Unknown val_split_method: {val_split_method!r}")
+
+
+def threshold_model_key(model_key, optimize_threshold):
+    """Results-directory key for a classification result, tagged by whether
+    the anomaly-detection threshold was optimized on the validation set or
+    fixed to half the generator's rated power (see ``optimize_threshold`` in
+    codes/unsupervised/03Classification.py).
+
+    ``True`` (optimized, the default) leaves ``model_key`` unchanged (matches
+    all pre-existing results); ``False`` (fixed threshold) gets a distinct
+    suffix so the two never overwrite or get mixed up, and can be compared
+    side by side in codes/unsupervised/05Threshold_comparison.py.
+    """
+
+    if optimize_threshold:
+        return model_key
+    return f"{model_key}_fixed_threshold"
+
+
 def load_models():
     models_dict = {
         "nb": {

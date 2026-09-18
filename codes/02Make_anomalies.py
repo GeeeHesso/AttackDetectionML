@@ -44,10 +44,10 @@ os.makedirs(pjoin("figures", "make_anomalies"), exist_ok=True)
 
 # %%% TEST SET SPLIT METHOD
 # "random": 20% of timesteps drawn at random (original method)
-# "fixed_years": entire simulated years held out as test set
+# "chronological": entire simulated years held out as test set
 test_split_method = "random"
 
-# Only used when test_split_method == "fixed_years"
+# Only used when test_split_method == "chronological"
 # Each entry is a (calendar year, series) pair, e.g. (2018, 3) is the third
 # simulated replica of 2018 (raw_data/gens_2018_3.csv).
 test_years = [(2016, 4), (2017, 4), (2018, 4), (2019, 4), (2020, 4)]
@@ -459,7 +459,7 @@ if test_split_method == "random":
     test_timesteps = (
         gen_p.sample(frac=0.2, random_state=3).index.sort_values().to_frame(False)
     )
-elif test_split_method == "fixed_years":
+elif test_split_method == "chronological":
     test_timesteps = pd.Index(years_timesteps(test_years)).sort_values().to_frame(False)
 else:
     raise ValueError(f"Unknown test_split_method: {test_split_method!r}")

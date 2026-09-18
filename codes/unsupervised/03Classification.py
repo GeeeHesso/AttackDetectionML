@@ -43,6 +43,13 @@ case = "CH"
 
 make_figures = True
 
+# If True (default), the classification threshold is optimized on the
+# validation set (making the approach partly supervised). If False, the
+# threshold is fixed to half the generator's rated power instead, for
+# comparison against the optimized version.
+optimize_threshold = True
+# optimize_threshold = False
+
 nets_dict = [case]  # List with all nets
 types_dict = ["generation", "injection"]  # List with all dataset type
 
@@ -140,9 +147,10 @@ for net_key, model_key, ds_type, seq, contextual in cartesian:
             attacked_gen_p = add_noise(attacked_gen_p, noise_std, random_state=44 + i)
 
         # LOAD PREDICTION
+        model_key_in = noisy_model_key(model_key, noise_std)
         dir_res = pjoin(
             path_result,
-            noisy_model_key(model_key, noise_std),
+            model_key_in,
             ds_type,
             f"{attacked_gen}",
             f"sequence_len-{seq}",
@@ -151,6 +159,20 @@ for net_key, model_key, ds_type, seq, contextual in cartesian:
 
         if not os.path.exists(dir_res):
             continue  # LSTM NOT 6*4 seq or contectual_t
+
+        # Classification outputs (confusion matrices, mistakes, ...) are
+        # written to a separate directory when the threshold is fixed rather
+        # than optimized, so the two never overwrite or get mixed up.
+        model_key_out = model_key_in if optimize_threshold else model_key_in + "_fixed_threshold"
+        dir_res_out = pjoin(
+            path_result,
+            model_key_out,
+            ds_type,
+            f"{attacked_gen}",
+            f"sequence_len-{seq}",
+            f"contextual_{contextual}",
+        )
+        os.makedirs(dir_res_out, exist_ok=True)
 
         y_val = rpckl(pjoin(dir_res, "prediction_validation_set.p")).sort_index()
         y_test = rpckl(pjoin(dir_res, "prediction_test_set.p")).sort_index()
@@ -276,48 +298,65 @@ for net_key, model_key, ds_type, seq, contextual in cartesian:
         # ax2.yaxis.label.set_color(color=colors[1])
         # ax2.tick_params(axis='y', colors=colors[1])
 
-        # OPTIMISE THRESHOLD WITH VALIDATION SET
-        threshold_max = int(y_val["absolute_error"].max())
+        # THRESHOLD: OPTIMIZED ON VALIDATION SET, OR FIXED TO HALF THE RATED POWER
+        if optimize_threshold:
+            threshold_max = int(y_val["absolute_error"].max())
 
-        cm, f2_score = [], []
-        for threshold in range(1, threshold_max):
-            y_class_predict = y_val["absolute_error_hacked"] > threshold
+            cm, f2_score = [], []
+            for threshold in range(1, threshold_max):
+                y_class_predict = y_val["absolute_error_hacked"] > threshold
 
-            cm.append(confusion_matrix(y_val["label"], y_class_predict).ravel())
-            f2_score.append(fbeta_score(y_val["label"], y_class_predict, beta=2))
+                cm.append(confusion_matrix(y_val["label"], y_class_predict).ravel())
+                f2_score.append(fbeta_score(y_val["label"], y_class_predict, beta=2))
 
-        cm = np.array(cm)
-        threshold_fit = pd.DataFrame(
-            {
-                "threshold": range(1, threshold_max),
-                "f2_score": f2_score,
-                "tn": cm[:, 0],
-                "fp": cm[:, 1],
-                "fn": cm[:, 2],
-                "tp": cm[:, 3],
-            }
-        ).sort_values("f2_score", ascending=False)
+            cm = np.array(cm)
+            threshold_fit = pd.DataFrame(
+                {
+                    "threshold": range(1, threshold_max),
+                    "f2_score": f2_score,
+                    "tn": cm[:, 0],
+                    "fp": cm[:, 1],
+                    "fn": cm[:, 2],
+                    "tp": cm[:, 3],
+                }
+            ).sort_values("f2_score", ascending=False)
 
-        threshold_fit.iloc[0:1, :].to_pickle(
-            pjoin(dir_res, "confusion_validation_set.p")
+            best_threshold = threshold_fit.threshold.iat[0]
+            confusion_validation_set = threshold_fit.iloc[0:1, :]
+        else:
+            best_threshold = 0.5 * p_nom[attacked_gen]
+
+            y_class_predict = y_val["absolute_error_hacked"] > best_threshold
+            cm = confusion_matrix(y_val["label"], y_class_predict).ravel()
+            confusion_validation_set = pd.DataFrame(
+                {
+                    "threshold": [best_threshold],
+                    "f2_score": [fbeta_score(y_val["label"], y_class_predict, beta=2)],
+                    "tn": [cm[0]],
+                    "fp": [cm[1]],
+                    "fn": [cm[2]],
+                    "tp": [cm[3]],
+                }
+            )
+
+        confusion_validation_set.to_pickle(
+            pjoin(dir_res_out, "confusion_validation_set.p")
         )
-
-        best_threshold = threshold_fit.threshold.iat[0]
 
         y_val["classification"] = y_val["absolute_error_hacked"] > best_threshold
         y_val["mistakes"] = y_val["label"] ^ y_val["classification"]
         y_val[["label", "classification", "mistakes"]].to_pickle(
-            pjoin(dir_res, "mistakes_validation_set.p")
+            pjoin(dir_res_out, "mistakes_validation_set.p")
         )
 
         y_test["classification"] = y_test["absolute_error_hacked"] > best_threshold
         y_test["mistakes"] = y_test["label"] ^ y_test["classification"]
         y_test[["label", "classification", "mistakes"]].to_pickle(
-            pjoin(dir_res, "mistakes_test_set.p")
+            pjoin(dir_res_out, "mistakes_test_set.p")
         )
 
         # PLOT EFFECT OF THRESHOLD
-        if make_figures:
+        if make_figures and optimize_threshold:
             fig, ax = plt.subplots(figsize=(8, 2.5))
             # ax.plot(threshold_fit.threshold, threshold_fit.f2_score)
             ax.scatter(threshold_fit.threshold, threshold_fit.f2_score)
@@ -412,7 +451,7 @@ for net_key, model_key, ds_type, seq, contextual in cartesian:
                 "tp": cm[3],
             },
             index=[0],
-        ).to_pickle(pjoin(dir_res, "confusion_test_set.p"))
+        ).to_pickle(pjoin(dir_res_out, "confusion_test_set.p"))
 
 
 if "lstm" in models_dict and "injection" in types_dict and "generation" in types_dict:
